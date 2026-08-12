@@ -221,8 +221,17 @@ trace, which is precisely this product's output.
   }
   .tape-body {
     font-family: var(--mono); font-size: 12px; line-height: 22px;
-    max-height: 62vh; overflow-y: auto; padding-right: 6px;
+    max-height: 62vh; overflow-y: auto; padding-right: 10px;
+    /* The default scrollbar renders as a white slab across the ruled pad. */
+    scrollbar-width: thin;
+    scrollbar-color: var(--rule) transparent;
   }
+  .tape-body::-webkit-scrollbar { width: 6px; }
+  .tape-body::-webkit-scrollbar-track { background: transparent; }
+  .tape-body::-webkit-scrollbar-thumb {
+    background: var(--rule); border-radius: 0;
+  }
+  .tape-body::-webkit-scrollbar-thumb:hover { background: var(--ink-faint); }
   .t-line { display: flex; gap: 9px; padding: 2px 0; }
   .t-line .n { color: var(--ink-faint); min-width: 20px; }
   .t-call { color: var(--ink); }
