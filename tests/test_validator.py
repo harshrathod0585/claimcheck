@@ -35,6 +35,12 @@ GOOD = {"claim_index": 0, "verdict": "SUPPORTED", "found": "54,284",
 CLAIM = "GAAP operating income was $54 million in FY2024"
 
 
+@pytest.fixture(autouse=True)
+def mock_fetch(monkeypatch):
+    import src.validator
+    monkeypatch.setattr(src.validator, "fetch", lambda doc_id, node_ids: ROWS if doc_id == "DDOG_10K_FY2024" else [])
+
+
 # ── retrievability ──────────────────────────────────────────────────────
 
 def test_invented_figure_is_not_retrievable():

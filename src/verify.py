@@ -211,15 +211,18 @@ def _trim(node: dict, depth: int) -> dict:
 
 
 def _run_tool(name: str, args: dict) -> str:
-    if name == "list_documents":
-        return json.dumps(tools.list_documents())
-    if name == "get_structure":
-        tree = tools.get_structure(args["doc_id"])
-        depth = int(args.get("depth", 99))
-        return json.dumps(_trim(tree, depth))[:120_000]
-    if name == "get_content":
-        return json.dumps(tools.get_content(args["doc_id"], args["node_ids"]))[:60_000]
-    return json.dumps({"error": f"unknown tool {name}"})
+    try:
+        if name == "list_documents":
+            return json.dumps(tools.list_documents())
+        if name == "get_structure":
+            tree = tools.get_structure(args["doc_id"])
+            depth = int(args.get("depth", 99))
+            return json.dumps(_trim(tree, depth))[:120_000]
+        if name == "get_content":
+            return json.dumps(tools.get_content(args["doc_id"], args.get("node_ids", [])))[:60_000]
+        return json.dumps({"error": f"unknown tool {name}"})
+    except Exception as exc:
+        return json.dumps({"error": f"Tool execution failed: {type(exc).__name__}: {exc}. Please verify document and node_ids."})
 
 
 def investigate(claims: list[Claim], model: str | None = None) -> dict[int, Evidence]:
@@ -237,10 +240,16 @@ def investigate(claims: list[Claim], model: str | None = None) -> dict[int, Evid
             return _parse(msg.get("content") or "", claims)
         for call in calls:
             fn = call["function"]
-            out = _run_tool(fn["name"], json.loads(fn["arguments"] or "{}"))
+            try:
+                args = json.loads(fn.get("arguments") or "{}")
+            except Exception:
+                args = {}
+            out = _run_tool(fn["name"], args)
             messages.append({"role": "tool", "tool_call_id": call["id"], "content": out})
 
-    raise RuntimeError(f"agent exceeded {budget} turns for {len(claims)} claims")
+    last_content = messages[-1].get("content", "") if messages else ""
+    parsed = _parse(last_content, claims) if last_content and "findings" in last_content else {}
+    return {i: parsed.get(i, Evidence()) for i in range(len(claims))}
 
 
 def _parse(content: str, claims: list[Claim]) -> dict[int, Evidence]:

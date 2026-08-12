@@ -25,7 +25,7 @@ app = FastAPI(title="ClaimCheck")
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[o for o in os.environ.get("ALLOW_ORIGINS", "*").split(",") if o],
-    allow_methods=["GET", "POST"],
+    allow_methods=["*"],
     allow_headers=["*"],
 )
 
@@ -49,8 +49,29 @@ def documents() -> list[dict]:
     return list_documents()
 
 
+@app.delete("/documents/{doc_id}")
+async def delete_document(doc_id: str) -> dict:
+    """Remove a document from corpus and disk index (idempotent)."""
+    import json
+    from . import tools as _t
+    paths = _t._paths()
+    if doc_id in paths:
+        path = paths[doc_id]
+        path.unlink(missing_ok=True)
+    
+    m = _t._manifest()
+    if doc_id in m:
+        del m[doc_id]
+        m_file = _t.CORPUS / "manifest.json"
+        m_file.write_text(json.dumps(m, indent=2))
+        
+    _t._paths.cache_clear()
+    _t._manifest.cache_clear()
+    return {"ok": True, "deleted": doc_id}
+
+
 @app.post("/upload")
-async def upload(role: str = Form("room"), files: list[UploadFile] = File(...)) -> dict:
+async def upload(role: str = Form("room"), files: list[UploadFile] = File(default=[])) -> dict:
     """Accept documents, index them, report what each became.
 
     A rejected file is named and explained rather than silently ignored.
@@ -72,10 +93,21 @@ async def upload(role: str = Form("room"), files: list[UploadFile] = File(...)) 
             doc = load(dest)
             tree = build_tree(doc)
             nodes = sum(1 for _ in walk(tree))
-            out.append({"name": dest.name, "ok": True, "role": role,
+            doc_role = "assertion" if role in ("deck", "assertion") else "filing"
+            out.append({"name": dest.name, "ok": True, "role": doc_role,
                         "doc_id": dest.stem, "nodes": nodes,
                         "bytes": dest.stat().st_size,
                         "detail": f"{nodes} sections indexed"})
+            
+            from . import tools as _t
+            m = _t._manifest()
+            m[dest.stem] = {
+                **m.get(dest.stem, {}),
+                "role": doc_role,
+                "type": "presentation deck" if doc_role == "assertion" else "sec filing"
+            }
+            m_file = CORPUS / "manifest.json"
+            m_file.write_text(json.dumps(m, indent=2))
         except NoStructure as exc:
             dest.unlink(missing_ok=True)
             out.append({"name": f.filename, "ok": False,

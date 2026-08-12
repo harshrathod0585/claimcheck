@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import json
 import os
+import pathlib
 import re
 import time
 import urllib.error
@@ -19,10 +20,14 @@ BASE_URL = os.environ.get("LLM_BASE_URL", "https://openrouter.ai/api/v1")
 MODEL = os.environ.get("LLM_MODEL", "qwen/qwen3-235b-a22b-2507")
 API_KEY = os.environ.get("LLM_API_KEY") or os.environ.get("OPENROUTER_API_KEY", "")
 JSON_OBJECT_ONLY = os.environ.get("LLM_JSON_OBJECT_ONLY", "1") == "1"
+# Providers refuse a request whose max_tokens exceeds the remaining balance,
+# even when the reply would be far shorter. Configurable so a tight budget can
+# still run.
+MAX_TOKENS = int(os.environ.get("LLM_MAX_TOKENS", "4000"))
 
 
 def chat(messages: list[dict], schema: dict | None = None, tools: list[dict] | None = None,
-         temperature: float = 0.0, max_tokens: int = 4000,
+         temperature: float = 0.0, max_tokens: int | None = None,
          model: str | None = None) -> dict:
     """One call. Returns the raw message dict so callers can read tool_calls.
 
@@ -31,7 +36,7 @@ def chat(messages: list[dict], schema: dict | None = None, tools: list[dict] | N
     is what stopped a five-model comparison from running in parallel.
     """
     body = {"model": model or MODEL, "messages": messages,
-            "temperature": temperature, "max_tokens": max_tokens}
+            "temperature": temperature, "max_tokens": max_tokens or MAX_TOKENS}
     if schema:
         # Constrained decoding, not "please reply in JSON" in the prompt.
         # ponytail: not every open model supports json_schema; json_object is the floor.

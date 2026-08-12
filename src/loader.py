@@ -16,7 +16,7 @@ from bs4 import BeautifulSoup
 
 warnings.filterwarnings("ignore", module="bs4")
 
-BLOCK = {"div", "p", "li", "tr", "td", "th", "table", "body", "html"}
+BLOCK = {"div", "p", "li", "tr", "td", "th", "table", "body", "html", "h1", "h2", "h3", "h4", "h5", "h6"}
 SYMBOLS = {"$", "%", "(", ")", "—", "-"}
 NOISE = {"table of contents", ""}
 
@@ -63,9 +63,16 @@ def _style_bold(el) -> bool:
 
 
 def _is_heading(el, text: str) -> bool:
-    """EDGAR has no <h1>. Headings are short, fully-bold text blocks."""
+    """EDGAR has no <h1>, so headings there are short fully-bold blocks.
+
+    Ordinary HTML does have heading tags, and a document that uses them was
+    building no tree at all — every non-EDGAR page would have been rejected as
+    structureless.
+    """
     if not text or len(text) > 200 or text.lower() in NOISE:
         return False
+    if getattr(el, "name", "") in ("h1", "h2", "h3", "h4", "h5", "h6"):
+        return True
     if re.match(r"^(PART|ITEM)\s+[IVX0-9]", text, re.I):
         return True
     spans = el.find_all(["span", "font", "b", "strong"])
@@ -74,7 +81,10 @@ def _is_heading(el, text: str) -> bool:
     return _style_bold(el)  # press releases bold the block itself, not a span
 
 
-def _level(text: str) -> int:
+def _level(text: str, el=None) -> int:
+    name = getattr(el, "name", "") if el is not None else ""
+    if name in ("h1", "h2", "h3", "h4", "h5", "h6"):
+        return int(name[1])
     if re.match(r"^PART\s+[IVX]+", text, re.I):
         return 1
     if re.match(r"^ITEM\s+\d", text, re.I):
@@ -211,7 +221,7 @@ def _load_html(html: str, doc_id: str) -> Document:
             continue
         if _is_heading(el, text):
             emit("")
-            emit("#" * _level(text) + " " + text, cur_anchor)
+            emit("#" * _level(text, el) + " " + text, cur_anchor)
         else:
             emit("")
             emit(text)

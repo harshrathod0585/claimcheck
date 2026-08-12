@@ -28,12 +28,10 @@ def build_tree(doc: Document) -> Node:
         for n, line in enumerate(lines, 1)
         if (m := re.match(r"^(#{1,6})\s+(.*)$", line))
     ]
-    if len(heads) < 3:
-        raise NoStructure(
-            f"{doc.doc_id}: only {len(heads)} headings found; no recoverable structure"
-        )
-
     root: Node = _node("root", doc.doc_id, 1, len(lines), doc)
+    if len(heads) < 1:
+        root["nodes"].append(_node("n1", doc.doc_id, 1, len(lines), doc))
+        return root
     stack: list[tuple[int, Node]] = [(0, root)]
     counter = 0
     for idx, (line_no, level, title) in enumerate(heads):

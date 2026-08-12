@@ -16,13 +16,7 @@ CORPUS = Path(__file__).resolve().parent.parent / "corpus"
 
 # ponytail: metadata for the one committed document, overridden by
 # corpus/manifest.json once the fetch script writes one.
-DEFAULT_MANIFEST = {
-    "SNOW_10K_FY2024": {
-        "type": "10-K",
-        "period": "FY2024 (fiscal year ended January 31, 2024)",
-        "url": "https://www.sec.gov/Archives/edgar/data/1640147/000164014724000101/snow-20240131.htm",
-    }
-}
+DEFAULT_MANIFEST = {}
 
 
 @lru_cache(maxsize=1)
@@ -62,7 +56,13 @@ def list_documents() -> list[dict]:
     for d in _paths():
         info = meta.get(d, {})
         kind = info.get("type", "document")
-        is_deck = "deck" in kind.lower() or "ex-99" in kind.lower()
+        role_str = str(info.get("role", "")).lower()
+        is_deck = (
+            role_str in ("assertion", "deck")
+            or "deck" in d.lower()
+            or "deck" in kind.lower()
+            or "ex-99" in kind.lower()
+        )
         out.append({
             "doc_id": d,
             "type": kind,

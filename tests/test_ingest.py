@@ -20,10 +20,14 @@ from src.tree import build_tree, walk
 
 warnings.filterwarnings("ignore")
 
-CORPUS = pathlib.Path(__file__).parent.parent / "corpus"
-TENK = CORPUS / "DDOG_10K_FY2024.htm"
+# A trimmed excerpt of Datadog's FY2024 10-K: Item 7, Results of Operations,
+# with the income statement and its unit header. Committed because this is the
+# behaviour the whole project rests on, and it must be testable without asking
+# anyone to download a 2 MB filing first. Full documents are supplied by the
+# user at run time; none are shipped.
+TENK = pathlib.Path(__file__).parent / "fixtures" / "ddog_income_statement.htm"
 
-pytestmark = pytest.mark.skipif(not TENK.exists(), reason="demo corpus not present")
+pytestmark = pytest.mark.skipif(not TENK.exists(), reason="fixture missing")
 
 
 @pytest.fixture(scope="module")
@@ -72,8 +76,8 @@ def test_table_unit_statement_survives(markdown):
 
 def test_tree_finds_the_filing_structure(tree):
     titles = [n["title"].upper() for n in walk(tree)]
-    assert any("PART I" in t for t in titles)
-    assert any("PART II" in t for t in titles)
+    assert any("ITEM 7" in t for t in titles), titles[:6]
+    assert any("RESULTS OF OPERATIONS" in t for t in titles), titles[:6]
 
 
 def test_income_statement_is_addressable(markdown, tree):

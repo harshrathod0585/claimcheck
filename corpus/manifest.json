@@ -1,17 +1,10 @@
 {
-  "DDOG_10K_FY2024": {
-    "type": "10-K",
-    "period": "FY2024 (fiscal year ended December 31, 2024)",
-    "url": "https://www.sec.gov/Archives/edgar/data/1561550/000156155025000025/ddog-20241231.htm"
+  "sample_deck_q3": {
+    "role": "assertion",
+    "type": "presentation deck"
   },
-  "DDOG_10Q_FY2024Q3": {
-    "type": "10-Q",
-    "period": "Q3 FY2024 (three months ended September 30, 2024)",
-    "url": "https://www.sec.gov/Archives/edgar/data/1561550/000156155024000175/ddog-20240930.htm"
-  },
-  "DDOG_8K_EX99-1_FY2024Q4": {
-    "type": "8-K EX-99.1 (the deck)",
-    "period": "Q4 and full year FY2024",
-    "url": "https://www.sec.gov/Archives/edgar/data/1561550/000156155025000017/ex-991x20241231x8k.htm"
+  "sample_deck_q4": {
+    "role": "assertion",
+    "type": "presentation deck"
   }
 }

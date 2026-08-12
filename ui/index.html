@@ -202,6 +202,25 @@ trace, which is precisely this product's output.
     font-family: var(--mono); font-size: 11px; color: var(--graphite);
     margin-top: 10px; letter-spacing: .04em;
   }
+  a.src {
+    display: flex; align-items: baseline; gap: 10px;
+    text-decoration: none; color: var(--ink);
+    border: 1px solid var(--manila-2); background: var(--pad-2);
+    padding: 9px 11px; margin-top: 12px;
+  }
+  a.src:hover { border-color: var(--blue); }
+  .src-host {
+    font-family: var(--mono); font-size: 9.5px; letter-spacing: .12em;
+    text-transform: uppercase; color: var(--pad); background: var(--blue);
+    padding: 2px 6px; flex: none;
+  }
+  .src-body { flex: 1; min-width: 0; font-family: var(--mono); font-size: 11.5px; line-height: 19px; }
+  .src-body b { font-weight: 600; }
+  .src-sec { color: var(--ink-soft); }
+  .src-body em { display: block; font-style: normal; font-size: 10px;
+    letter-spacing: .06em; color: var(--ink-faint); text-transform: uppercase; }
+  .src-go { color: var(--blue); flex: none; font-size: 13px; }
+
   .cite {
     display: inline-block; margin-top: 10px;
     font-family: var(--mono); font-size: 11px; letter-spacing: .05em;
@@ -254,6 +273,7 @@ trace, which is precisely this product's output.
   .t-mark.contradicted { color: var(--vermilion); }
   .t-mark.basis { color: var(--ochre); }
   .t-mark.none { color: var(--graphite); }
+  .tick-secs { font-weight: 600; color: var(--vermilion); }
   .cursor {
     display: inline-block; width: 7px; height: 14px;
     background: var(--ink); vertical-align: -2px;
@@ -618,10 +638,45 @@ const counts = { supported: 0, contradicted: 0, basis: 0, none: 0 };
 const wait = ms => new Promise(r => setTimeout(r, ms));
 const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
 
+function ticker(label) {
+  const el = tline(`<div class="t-line"><span class="n">··</span>` +
+                   `<span class="t-call">${label} <b class="tick-secs">0s</b></span></div>`);
+  const started = Date.now();
+  const id = setInterval(() => {
+    const secs = Math.round((Date.now() - started) / 1000);
+    const b = el.querySelector('.tick-secs');
+    if (b) b.textContent = `${secs}s`;
+  }, 1000);
+  return { stop(note) {
+    clearInterval(id);
+    const b = el.querySelector('.tick-secs');
+    if (b) b.textContent = `${Math.round((Date.now() - started) / 1000)}s${note ? ' · ' + note : ''}`;
+  }};
+}
+
 function tline(html) {
   const d = document.createElement('div');
   d.innerHTML = html; tape.appendChild(d);
   tape.scrollTop = tape.scrollHeight; return d;
+}
+
+function sourceCard(c) {
+  // domain · document · section · anchor, so a reader knows what they are
+  // clicking before they click it.
+  let host = 'source';
+  try { host = new URL(c.cite).hostname.replace(/^www\./, ''); } catch {}
+  const anchored = /#/.test(c.cite);
+  const path = (c.path || '').split(' › ').filter(Boolean);
+  const doc = path.shift() || c.doc_id || 'filing';
+  const section = path.join(' › ');
+  return `<a class="src" href="${c.cite}" target="_blank" rel="noopener">
+      <span class="src-host">${host}</span>
+      <span class="src-body">
+        <b>${doc}</b>${section ? ` <span class="src-sec">${section}</span>` : ''}
+        <em>${anchored ? 'opens at the cited passage' : 'opens the filing'}</em>
+      </span>
+      <span class="src-go">&nearr;</span>
+    </a>`;
 }
 
 function table(rows) {
@@ -651,9 +706,8 @@ function render(c) {
         <div class="trail"><span>retrieval path</span> &nbsp;${c.path}</div>
         ${c.quote ? `<div class="quoted">&ldquo;${c.quote}&rdquo;</div>` : ''}
         ${table(c.rows)}
-        ${c.cite
-          ? `<a class="cite" href="${c.cite}" target="_blank" rel="noopener">open the cited passage on sec.gov &nearr;</a>`
-          : `<div class="nocite">no citation &mdash; nothing was retrieved for this claim</div>`}
+        ${c.cite ? sourceCard(c) :
+          `<div class="nocite">no citation &mdash; nothing was retrieved for this claim</div>`}
       </div>
     </details>`;
   sheet.appendChild(el);
@@ -721,6 +775,8 @@ async function runLive() {
     tline(`<div class="t-mark contradicted">${all.length - seen} claim(s) returned no verdict</div>`);
 }
 
+let waitTick = null;
+
 async function runGroup(group) {
   const res = await fetch(`${API}/verify`, {
     method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -752,6 +808,8 @@ async function runGroup(group) {
       }
       if (ev === 'thinking') {
         document.getElementById('turns').textContent = `turn ${d.turn}/${d.of}`;
+        if (waitTick) waitTick.stop();
+        waitTick = ticker(`turn ${d.turn} · agent thinking`);
         continue;
       }
       if (ev === 'tool') {
@@ -774,6 +832,7 @@ async function runGroup(group) {
         continue;
       }
       if (ev !== 'verdict') continue;
+      if (waitTick) { waitTick.stop(); waitTick = null; }
 
       const key = KEYS[d.status] || 'none';
       render({
@@ -1001,8 +1060,8 @@ async function doExtract() {
   extractBtn.disabled = true; extractBtn.innerHTML = '<span>1</span> Extracting…';
   el.className = 'waiting'; el.textContent = 'Reading the deck…';
   tline(`<div class="t-line"><span class="n">--</span><span class="t-call"><em>extract</em>(deck)</span></div>`);
-
-  await wait(reduced ? 0 : 900);
+  document.getElementById('turns').textContent = 'reading the deck';
+  const tick = ticker('one model call over the whole deck');
 
   let rows = null;
   if (LIVE) {
@@ -1039,6 +1098,8 @@ async function doExtract() {
     } catch { /* fall through to the committed set */ }
   }
 
+  tick.stop('done');
+  document.getElementById('turns').textContent = 'extracted';
   const el2 = document.getElementById('extracted');
   el2.className = ''; el2.outerHTML = '<ul class="extracted" id="extracted"></ul>';
   paintExtracted(rows || EXTRACTED);
