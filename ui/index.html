@@ -65,7 +65,8 @@ trace, which is precisely this product's output.
 
   /* ── header rule ─────────────────────────────────────────── */
   header {
-    display: flex; align-items: baseline; gap: 18px; flex-wrap: wrap;
+    display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap;
+    row-gap: 8px;
     padding: 40px 0 12px;
     border-bottom: 2px solid var(--ink);
     margin-bottom: 2px;
@@ -78,7 +79,7 @@ trace, which is precisely this product's output.
     font-family: var(--mono); font-size: 11px; letter-spacing: .1em;
     color: var(--ink-faint); text-transform: uppercase;
   }
-  .spacer { flex: 1 1 60px; }
+  .spacer { flex: 1 1 20px; }
   .prepared {
     font-family: var(--mono); font-size: 11px; color: var(--ink-faint);
     letter-spacing: .06em; text-align: right;
@@ -251,6 +252,7 @@ trace, which is precisely this product's output.
     border: none; padding: 7px 16px; line-height: 20px;
   }
   button.run:hover { background: var(--vermilion); }
+  button.run { white-space: nowrap; }
   button.run span {
     display: inline-block; margin-right: 7px; padding: 0 5px;
     border: 1px solid currentColor; opacity: .65; font-size: 10px;
@@ -265,6 +267,7 @@ trace, which is precisely this product's output.
     text-transform: uppercase; color: var(--blue); text-decoration: none;
     border-bottom: 1px solid var(--blue); padding-bottom: 1px;
   }
+  .drop-cta[hidden], .url-row[hidden] { display: none; }
   .url-row { display: flex; gap: 0; margin-top: 8px; }
   .url-row input {
     flex: 1; min-width: 0; font-family: var(--mono); font-size: 11.5px;
@@ -865,10 +868,13 @@ async function refreshDocs() {
     docRow(room, 'SNOW_10K_FY2024', '2.6 MB · 128 sections');
     docRow(room, 'SNOW_10Q_FY2024Q3', '2.3 MB · html');
   }
+  // No backend means upload and fetch cannot work, so the controls do not
+  // appear. A dead input that silently does nothing is worse than no input.
+  document.querySelectorAll('.drop-cta, .url-row').forEach(el => { el.hidden = !LIVE; });
   const b = document.getElementById('backend-state');
   if (b) {
     b.textContent = LIVE ? 'backend connected · live run' : 'no backend · committed data';
-    b.className = LIVE ? 'live' : '';
+    b.classList.toggle('live', LIVE);
   }
 }
 
