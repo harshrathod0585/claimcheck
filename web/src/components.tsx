@@ -350,7 +350,7 @@ export function VerdictRow({ v }: { v: Verdict }) {
         <TickIcon status={v.status} size={22} />
       </div>
 
-      <div>
+      <div className="claim-main-content">
         <div className="claim-text">{v.text}</div>
 
         {v.reason && (
@@ -373,45 +373,32 @@ export function VerdictRow({ v }: { v: Verdict }) {
           </div>
         )}
 
-        {(v.quote || v.cite) && (
-          <details className="evidence">
-            <summary>Evidence & Source Context</summary>
-            <div className="slip">
-              {v.node_ids?.length ? (
-                <div className="trail">
-                  <span>Target Nodes: </span> {v.node_ids.join(', ')}
-                </div>
-              ) : null}
-
-              {v.quote && (
-                <blockquote className="quoted">
-                  "{v.quote}"
-                </blockquote>
-              )}
-
-              {v.cite ? (
-                <a className="src" href={v.cite} target="_blank" rel="noreferrer">
-                  <span className="src-host">SEC EDGAR</span>
-                  <div className="src-body">
-                    <b>Primary SEC Citation Link</b>
-                    <div className="src-sec">{v.cite}</div>
-                  </div>
-                  <ExternalLink size={14} className="src-go" />
-                </a>
-              ) : (
-                <div className="src-local">
-                  <FileText size={14} className="src-local-icon" />
-                  <div className="src-body">
-                    <b>Source Corpus File: {v.doc_id || 'Uploaded Document'}</b>
-                    <div className="src-sec">
-                      Verified Node Citation: {v.node_ids?.length ? v.node_ids.join(', ') : 'Node Structure'}
-                    </div>
-                  </div>
-                </div>
-              )}
-            </div>
-          </details>
+        {v.quote && (
+          <blockquote className="quoted">
+            "{v.quote}"
+          </blockquote>
         )}
+
+        {v.cite ? (
+          <a className="src" href={v.cite} target="_blank" rel="noreferrer">
+            <span className="src-host">SEC EDGAR</span>
+            <div className="src-body">
+              <b>Primary SEC Citation Link</b>
+              <div className="src-sec">{v.cite}</div>
+            </div>
+            <ExternalLink size={14} className="src-go" />
+          </a>
+        ) : (v.doc_id || v.node_ids?.length) ? (
+          <div className="src-local">
+            <FileText size={14} className="src-local-icon" />
+            <div className="src-body">
+              <b>Source Document: {v.doc_id || 'Corpus File'}</b>
+              <div className="src-sec">
+                {v.node_ids?.length ? `Verified Node ${v.node_ids.join(', ')}` : 'Document Node'}
+              </div>
+            </div>
+          </div>
+        ) : null}
       </div>
 
       <div className={`status ${tone}`}>
