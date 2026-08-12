@@ -11,7 +11,7 @@ import pathlib
 from src.extract import extract
 from src.loader import load
 
-DECK = pathlib.Path(__file__).parent / "corpus" / "SNOW_8K_EX99-1_FY2024Q4.htm"
+DECK = pathlib.Path(__file__).parent / "corpus" / "DDOG_8K_EX99-1_FY2024Q4.htm"
 OUT = pathlib.Path(__file__).parent / "ui" / "extracted.json"
 
 # Claims carried through to verification in run_demo.py, matched on figure text.

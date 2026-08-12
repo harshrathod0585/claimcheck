@@ -7,8 +7,8 @@ enters the pipeline.
 from __future__ import annotations
 
 from .llm import json_call
-from .models import Claim, Operation
-from .normalize import parse_period, parse_quantity
+from .models import Claim, Operation, Quantity, Unit
+from .normalize import detect_basis, parse_period, parse_quantity
 
 SCHEMA = {
     "type": "object",
@@ -20,11 +20,19 @@ SCHEMA = {
             "items": {
                 "type": "object",
                 "additionalProperties": False,
-                "required": ["text", "figure", "operation", "period", "section"],
+                "required": ["text", "figure", "value", "scale", "unit",
+                             "operation", "period", "section"],
                 "properties": {
                     "text": {"type": "string"},
                     "figure": {"type": "string",
                                "description": "the number exactly as written, e.g. '$4.2M', '140%'"},
+                    "value": {"type": "number",
+                              "description": "the bare mantissa, no separators or suffix. '$2.68B' -> 2.68"},
+                    "scale": {"type": "string", "enum": ["", "K", "M", "B", "T"],
+                              "description": "magnitude suffix. '$2.68B' -> B. '2,684,275' -> ''. "
+                                             "Use the table's stated unit when the figure is bare: "
+                                             "a number under '(in thousands)' is K."},
+                    "unit": {"type": "string", "enum": ["USD", "percent", "count", "ratio"]},
                     "operation": {"type": "string", "enum": ["absolute", "growth", "margin", "entity", "count"]},
                     "period": {"type": "string", "description": "e.g. 'FY2024', 'Q4 2023', or '' if none stated"},
                     "section": {"type": "string", "description": "heading this claim sat under"},
@@ -48,12 +56,25 @@ MATERIAL:
 ---"""
 
 
-def extract(markdown: str, max_chars: int = 60_000) -> list[Claim]:
-    """One call. Returns typed claims with period inherited from section context."""
-    raw = json_call(
-        [{"role": "user", "content": PROMPT.format(body=markdown[:max_chars])}],
-        SCHEMA,
-    )
+def extract(markdown: str, max_chars: int = 60_000, attempts: int = 3) -> list[Claim]:
+    """One call. Returns typed claims with period inherited from section context.
+
+    Occasionally the model returns a well-formed response with an empty claims
+    array over material that plainly contains figures. That is a silent total
+    failure — the caller cannot tell it from a document with nothing to check —
+    so an empty result is retried rather than returned.
+    """
+    body = PROMPT.format(body=markdown[:max_chars])
+    raw = {}
+    for attempt in range(attempts):
+        raw = json_call([{"role": "user", "content": body}], SCHEMA)
+        if raw.get("claims"):
+            break
+        if attempt == attempts - 1:
+            raise RuntimeError(
+                f"extractor returned no claims after {attempts} attempts over "
+                f"{len(markdown)} chars of material")
+
     claims = []
     for c in raw.get("claims", []):
         if c["operation"] == "entity":
@@ -61,6 +82,12 @@ def extract(markdown: str, max_chars: int = 60_000) -> list[Claim]:
         q = parse_quantity(c["figure"])
         if q is None:
             continue
+        # The model tags value, scale and unit; Python does the multiplying.
+        # Reading how a filing phrases a magnitude is open-ended and suits the
+        # model. Turning a tag into a number is arithmetic, and arithmetic is
+        # the thing it gets confidently wrong.
+        q = _tagged(c) or q
+
         # A count ("40 employees") is verified the same way as any absolute figure.
         op = Operation(c["operation"]) if c["operation"] in Operation._value2member_map_ \
             else Operation.ABSOLUTE
@@ -68,6 +95,33 @@ def extract(markdown: str, max_chars: int = 60_000) -> list[Claim]:
         claims.append(Claim(text=c["text"], value=q, operation=op,
                             period=period or q.period))
     return claims
+
+
+SCALE = {"": 1.0, "K": 1e3, "M": 1e6, "B": 1e9, "T": 1e12}
+
+
+def _tagged(c: dict) -> Quantity | None:
+    """Build a Quantity from the model's tags rather than by parsing prose.
+
+    Returns None when the tags are missing or unusable, so the text parser
+    stays as the floor. The multiplication happens here, in Python: the model
+    says "B", it never says 2,680,000,000.
+    """
+    try:
+        value = float(c["value"])
+    except (KeyError, TypeError, ValueError):
+        return None
+    scale = SCALE.get((c.get("scale") or "").upper().strip())
+    if scale is None:
+        return None
+    try:
+        unit = Unit(c.get("unit") or "count")
+    except ValueError:
+        unit = Unit.COUNT
+    return Quantity(value=value, unit=unit, scale=scale,
+                    period=parse_period(c.get("period", "")),
+                    basis=detect_basis(c.get("text", "")),
+                    raw=c.get("figure", "") or str(value))
 
 
 def groups(claims: list[Claim], size: int = 10) -> list[list[Claim]]:

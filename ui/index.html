@@ -446,7 +446,7 @@ trace, which is precisely this product's output.
   <div class="underrule"></div>
 
   <div class="prepared" style="text-align:left;margin-bottom:18px">
-    SUBJECT: Snowflake Inc. (CIK 0001640147) &nbsp;·&nbsp; PERIOD: FY2024, ended 31 Jan 2024<br>
+    SUBJECT: Datadog, Inc. (CIK 0001561550) &nbsp;·&nbsp; PERIOD: FY2024, ended 31 Dec 2024<br>
     DECK: 8-K EX-99.1 Q4 FY2024 earnings &nbsp;·&nbsp; DATA ROOM: 10-K FY2024, 10-Q Q3 FY2024
   </div>
 
@@ -521,59 +521,59 @@ trace, which is precisely this product's output.
 const RUN = [
   { turn: 1, call: 'list_documents()', arg: '',
     think: 'Three documents. The FY2024 10-K covers the period every claim refers to, so that is the authority. The 10-Q covers Q3 only.' },
-  { turn: 2, call: 'get_structure', arg: 'SNOW_10K_FY2024',
-    think: '128 sections, titles and page spans only — no body text, so the whole tree fits in one prompt. Total revenue by fiscal year belongs in Item 8, Consolidated Statements of Operations. Item 7 carries the non-GAAP reconciliation, worth reading if a figure disagrees.' },
-  { turn: 3, call: 'get_content', arg: 'SNOW_10K_FY2024, [n94, n143]',
+  { turn: 2, call: 'get_structure', arg: 'DDOG_10K_FY2024',
+    think: '121 sections, titles and line spans only — no body text, so the whole tree fits in one prompt. Revenue by fiscal year sits in Item 7, Results of Operations. The deck also reports non-GAAP operating income, so that reconciliation is worth reading when a figure disagrees.' },
+  { turn: 3, call: 'get_content', arg: 'DDOG_10K_FY2024, [n94, n143]',
     think: 'Both nodes in one fetch. Four claims below need this same income statement — retrieving it once answers all of them.' },
 ];
 
-const CITE = 'https://www.sec.gov/Archives/edgar/data/1640147/000164014724000101/snow-20240131.htm';
+const CITE = 'https://www.sec.gov/Archives/edgar/data/1561550/000156155025000025/ddog-20241231.htm';
 
 const CLAIMS = [
   {
     text: 'Revenue grew 140% year over year in FY2024',
     src: 'Seeded defect · growth', seeded: true, status: 'contradicted', tick: '✗',
-    exception: 'claimed <s>140%</s> &nbsp;·&nbsp; actual <strong>35.9%</strong> on GAAP total revenue',
-    path: 'Item 8 › Consolidated Statements of Operations',
-    rows: [['(in thousands)', 'FY2024', 'FY2023'], ['Total revenue', '2,806,489', '2,065,659', 1],
-           ['Cost of revenue', '898,558', '717,540'], ['Gross profit', '1,907,931', '1,348,119']],
-    decided: 'compare.py — (2,806,489 − 2,065,659) / 2,065,659 = 35.9% · outside the band for 2 s.f.',
+    exception: 'claimed <s>140%</s> &nbsp;·&nbsp; actual <strong>26.1%</strong> on GAAP revenue',
+    path: 'Item 7 › Results of Operations',
+    rows: [['(in thousands)', 'FY2024', 'FY2023'], ['Revenue', '2,684,275', '2,128,359', 1],
+           ['Cost of revenue', '515,531', '409,908'], ['Gross profit', '2,168,744', '1,718,451']],
+    decided: 'compare.py — (2,684,275 − 2,128,359) / 2,128,359 = 26.1% · outside the band for 2 s.f.',
     cite: CITE
   },
   {
-    text: '38% year-over-year growth in product revenue',
+    text: 'Revenue was $2.68 billion, an increase of 26% year over year',
     src: 'Deck · growth', status: 'supported', tick: '✓',
-    path: 'Item 7 › MD&A › Key Business Metrics',
-    rows: [['(in millions)', 'FY2024', 'FY2023'], ['Product revenue', '$2,666.8', '$1,938.8', 1]],
-    decided: 'compare.py — (2,666.8 − 1,938.8) / 1,938.8 = 37.6% · rounds to 38% at 2 s.f.',
+    path: 'Item 7 › Results of Operations',
+    rows: [['(in thousands)', 'FY2024', 'FY2023'], ['Revenue', '2,684,275', '2,128,359', 1]],
+    decided: 'compare.py — 26.1% rounds to 26% at 2 s.f.; figure agrees',
     cite: CITE
   },
   {
-    text: 'Product revenue of $2,666.8 million in FY2024',
+    text: 'GAAP operating income was $54 million in FY2024',
     src: 'Deck · absolute', status: 'supported', tick: '✓',
-    path: 'Item 7 › MD&A › Key Business Metrics',
-    rows: [['(in millions)', 'FY2024'], ['Product revenue', '$2,666.8', null, 1]],
-    decided: 'compare.py — figure agrees exactly as stated',
+    path: 'Item 7 › Results of Operations',
+    rows: [['(in thousands)', 'FY2024', 'FY2023'], ['Operating income (loss)', '54,284', '(33,464)', 1]],
+    decided: 'compare.py — $54M to 2 s.f.; 54,284 inside the band',
     cite: CITE
   },
   {
-    text: 'Product gross margin of 74% in FY2024',
-    src: 'Deck · margin', status: 'basis', tick: '≠',
-    exception: 'claimed <strong>74%</strong> is <strong>non-GAAP product</strong> gross margin &nbsp;·&nbsp; GAAP gross margin is <strong>68.0%</strong> — both correct, different basis',
-    path: 'Item 8 › Statements of Operations &nbsp;+&nbsp; Item 7 › Non-GAAP Measures',
-    rows: [['(in thousands)', 'FY2024'], ['Gross profit (GAAP)', '1,907,931'],
-           ['Total revenue', '2,806,489'], ['GAAP gross margin', '68.0%', null, 1]],
-    decided: 'compare.py — 1,907,931 / 2,806,489 = 68.0% · claim matches the non-GAAP product basis, not GAAP',
+    text: 'Non-GAAP operating income was $674 million in FY2024',
+    src: 'Deck · absolute', status: 'basis', tick: '≠',
+    exception: 'claimed <strong>$674M</strong> is <strong>non-GAAP</strong> operating income &nbsp;·&nbsp; GAAP operating income is <strong>$54.3M</strong>. Both correct, 12× apart, different basis.',
+    path: 'Item 7 › Results of Operations &nbsp;+&nbsp; deck reconciliation',
+    rows: [['(in thousands)', 'FY2024'], ['Operating income (GAAP)', '54,284', null, 1],
+           ['Non-GAAP operating income (deck)', '674,000']],
+    decided: 'compare.py — claim matches no GAAP figure but agrees with the non-GAAP basis; reported as a basis difference, not a contradiction',
     cite: CITE
   },
   {
-    text: 'Free cash flow of $778.9 million in FY2024',
+    text: 'Free cash flow of $775 million in FY2024',
     src: 'Deck · absolute', status: 'supported', tick: '✓',
-    path: 'Item 7 › Non-GAAP Financial Measures › Free Cash Flow',
-    rows: [['(in millions)', 'FY2024', 'FY2023'],
-           ['Net cash from operations', '$848.1', '$545.6'],
-           ['Free cash flow (non-GAAP)', '$778.9', '$496.5', 1]],
-    decided: 'compare.py — figure agrees; basis stated as non-GAAP in both deck and filing',
+    path: 'Item 7 › Liquidity and Capital Resources',
+    rows: [['(in thousands)', 'FY2024', 'FY2023'],
+           ['Net cash from operations', '870,603', '659,954'],
+           ['Free cash flow', '775,103', '597,548', 1]],
+    decided: 'compare.py — $775M to 3 s.f.; 775,103 inside the band',
     cite: CITE
   },
   {
@@ -811,30 +811,7 @@ async function run() {
 }
 
 // Real output of one extraction call over the FY2024 Q4 earnings release.
-const EXTRACTED = [
-  ['growth','56%','FY24','56% YoY growth in non-GAAP adjusted free cash flow'],
-  ['absolute','$545.3M','Q4','Product gross profit of $545.3 million'],
-  ['margin','74%','Q4','74% product gross margin', 1],
-  ['absolute','$(275.5)M','Q4','Operating income of ($275.5) million'],
-  ['absolute','$71.0M','Q4','Non-GAAP operating income of $71.0 million'],
-  ['margin','9%','Q4','9% non-GAAP operating margin'],
-  ['absolute','$324.5M','Q4','Free cash flow of $324.5 million'],
-  ['growth','42%','Q4','42% YoY growth in free cash flow'],
-  ['absolute','$324.3M','Q4','Adjusted free cash flow of $324.3 million'],
-  ['growth','42%','Q4','42% YoY growth in adjusted free cash flow'],
-  ['absolute','$2,666.8M','FY24','Product revenue of $2,666.8 million', 1],
-  ['growth','38%','FY24','38% YoY growth in product revenue', 1],
-  ['absolute','$1,965.6M','FY24','Product gross profit of $1,965.6 million'],
-  ['margin','74%','FY24','74% product gross margin', 1],
-  ['absolute','$(1,094.8)M','FY24','Operating income of ($1,094.8) million'],
-  ['absolute','$229.7M','FY24','Non-GAAP operating income of $229.7 million'],
-  ['margin','8%','FY24','8% non-GAAP operating margin'],
-  ['absolute','$848.1M','FY24','Net cash provided by operating activities of $848.1M'],
-  ['absolute','$778.9M','FY24','Free cash flow of $778.9 million', 1],
-  ['growth','28%','FY24','28% YoY growth in free cash flow'],
-  ['absolute','$810.2M','FY24','Adjusted free cash flow of $810.2 million'],
-  ['growth','29%','FY24','29% YoY growth in adjusted free cash flow'],
-];
+const EXTRACTED = [];
 
 function paintExtracted(rows) {
   document.getElementById('extracted').innerHTML = rows.map(
@@ -873,9 +850,9 @@ async function refreshDocs() {
     LIVE = true;
   } catch {
     LIVE = false;
-    docRow(deck, 'SNOW_8K_EX99-1_FY2024Q4', '533 KB · html');
-    docRow(room, 'SNOW_10K_FY2024', '2.6 MB · 128 sections');
-    docRow(room, 'SNOW_10Q_FY2024Q3', '2.3 MB · html');
+    docRow(deck, 'DDOG_8K_EX99-1_FY2024Q4', '395 KB · html');
+    docRow(room, 'DDOG_10K_FY2024', '2.0 MB · 121 sections');
+    docRow(room, 'DDOG_10Q_FY2024Q3', '1.6 MB · html');
   }
   // No backend means upload and fetch cannot work, so the controls do not
   // appear. A dead input that silently does nothing is worse than no input.

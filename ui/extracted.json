@@ -1,0 +1,102 @@
+{
+  "claims": [
+    {
+      "text": "Fourth quarter revenue grew 25% year-over-year to $738 million",
+      "operation": "absolute",
+      "figure": "738",
+      "period": "Fiscal Year 2024",
+      "carried": false
+    },
+    {
+      "text": "Strong growth of larger customers, with 462 $1 million+ ARR customers, up from 396 a year ago",
+      "operation": "absolute",
+      "figure": "462",
+      "period": "Fiscal Year 2024",
+      "carried": false
+    },
+    {
+      "text": "Revenue was $738 million, an increase of 25% year-over-year",
+      "operation": "absolute",
+      "figure": "738",
+      "period": "",
+      "carried": false
+    },
+    {
+      "text": "GAAP operating income was $9 million; GAAP operating margin was 1%",
+      "operation": "absolute",
+      "figure": "9",
+      "period": "",
+      "carried": false
+    },
+    {
+      "text": "Non-GAAP operating income was $179 million; non-GAAP operating margin was 24%",
+      "operation": "absolute",
+      "figure": "179",
+      "period": "",
+      "carried": false
+    },
+    {
+      "text": "Operating cash flow was $265 million, with free cash flow of $241 million",
+      "operation": "absolute",
+      "figure": "265",
+      "period": "",
+      "carried": false
+    },
+    {
+      "text": "Cash, cash equivalents and marketable securities were $4.2 billion as of December 31, 2024",
+      "operation": "absolute",
+      "figure": "4.2",
+      "period": "",
+      "carried": false
+    },
+    {
+      "text": "Revenue was $2.68 billion, an increase of 26% year-over-year",
+      "operation": "absolute",
+      "figure": "2.68",
+      "period": "Fiscal Year 2024",
+      "carried": false
+    },
+    {
+      "text": "GAAP operating income was $54 million; GAAP operating margin was 2%",
+      "operation": "absolute",
+      "figure": "54",
+      "period": "Fiscal Year 2024",
+      "carried": false
+    },
+    {
+      "text": "Non-GAAP operating income was $674 million; non-GAAP operating margin was 25%",
+      "operation": "absolute",
+      "figure": "674",
+      "period": "Fiscal Year 2024",
+      "carried": false
+    },
+    {
+      "text": "Operating cash flow was $871 million, with free cash flow of $775 million",
+      "operation": "absolute",
+      "figure": "871",
+      "period": "Fiscal Year 2024",
+      "carried": false
+    },
+    {
+      "text": "We had 462 customers with ARR of $1 million or more, an increase of 17% from 396 as of December 31, 2023",
+      "operation": "absolute",
+      "figure": "462",
+      "period": "",
+      "carried": false
+    },
+    {
+      "text": "We had about 3,610 customers with ARR of $100,000 or more, an increase of 13% from 3,190 as of December 31, 2023",
+      "operation": "absolute",
+      "figure": "3,610",
+      "period": "",
+      "carried": false
+    },
+    {
+      "text": "Issued $1 billion aggregate principal amount of 0% Convertible Senior Notes due 2029 in a private placement",
+      "operation": "absolute",
+      "figure": "1",
+      "period": "",
+      "carried": false
+    }
+  ]
+}

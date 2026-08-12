@@ -94,15 +94,49 @@ def _loads(content: str) -> dict:
     return {"findings": []}
 
 
-def _cite(doc_id: str, node_ids: list[str]) -> str:
-    """Citation comes from the node that was actually fetched, never the model."""
+def _fetched(doc_id: str, node_ids: list[str]) -> list[dict]:
     if not doc_id or not node_ids:
-        return ""
+        return []
     try:
-        rows = tools.get_content(doc_id, node_ids[:1])
+        return tools.get_content(doc_id, node_ids)
     except (KeyError, IndexError):
-        return ""
+        return []
+
+
+def _cite(rows: list[dict]) -> str:
+    """Citation comes from the node that was actually fetched, never the model."""
     return rows[0].get("cite", "") if rows else ""
+
+
+def _table_unit(rows: list[dict]) -> str:
+    """The scale statement printed in the fetched table, e.g. '(in thousands)'."""
+    for r in rows:
+        m = re.search(r"\(in (thousands|millions|billions)[^)]*\)",
+                      r.get("content", ""), re.I)
+        if m:
+            return m.group(0)
+    return ""
+
+
+def _grounded(raw: str, rows: list[dict]) -> bool:
+    """Does this figure actually appear in the text the agent read?
+
+    A model will report a figure that is not in the document — not as a
+    retrieval miss but as a fluent invention, complete with a plausible label
+    and a real node id. Reporting that as SUPPORTED, with a working citation
+    pointing at a page that does not contain it, is the worst output this
+    system can produce.
+
+    So the figure is checked against the fetched content. Digits only, since
+    the model reformats separators freely (674,000 / 674000 / $674.0).
+    """
+    if not raw or not rows:
+        return False
+    digits = re.sub(r"[^\d]", "", raw)
+    if not digits:
+        return False
+    haystack = re.sub(r"[^\d]", "", " ".join(r.get("content", "") for r in rows))
+    return digits in haystack
 
 
 def _trim(node: dict, depth: int) -> dict:
@@ -154,27 +188,40 @@ def _parse(content: str, claims: list[Claim]) -> dict[int, Evidence]:
 
     found: dict[int, Evidence] = {}
     for f in data.get("findings", []):
-        quantities = []
+        doc_id, node_ids = f.get("doc_id", ""), f.get("node_ids", [])
+        rows = _fetched(doc_id, node_ids)
+        quantities, ungrounded = [], []
         for fig in f.get("figures", []):
             # The row label carries basis and period hints; the table's unit
             # statement carries scale. Conflating them silently reads a figure
             # printed in thousands as units and reports a false CONTRADICTED.
-            q = parse_quantity(fig.get("raw", ""),
-                               table_unit=fig.get("unit", ""),
+            raw = fig.get("raw", "")
+            if not _grounded(raw, rows):
+                ungrounded.append(raw)
+                continue
+            # Read the table's unit statement out of the text we fetched rather
+            # than trusting the model to report it. "(in thousands)" is printed
+            # once in a header, and a figure read as units instead of thousands
+            # is wrong by 1000x — too important to leave to a prompt.
+            q = parse_quantity(raw,
+                               table_unit=fig.get("unit", "") or _table_unit(rows),
                                context=fig.get("label", ""))
             if q is None:
                 continue
             p = parse_period(fig.get("period", "")) or q.period
             quantities.append(Quantity(value=q.value, unit=q.unit, scale=q.scale,
                                        period=p, basis=q.basis, raw=q.raw))
-        doc_id, node_ids = f.get("doc_id", ""), f.get("node_ids", [])
+        quote = f.get("quote", "")
+        if ungrounded:
+            quote = (f"[dropped, not present in the cited text: "
+                     f"{', '.join(ungrounded)}] {quote}").strip()
         found[f.get("claim_index", -1)] = Evidence(
             quantities=quantities,
             covered_periods=[q.period for q in quantities if q.period],
             doc_id=doc_id, node_ids=node_ids,
             # Never trust a model-authored URL — it will invent a plausible one
             # for the wrong company. Resolve it from the node we actually read.
-            citation_url=_cite(doc_id, node_ids), quote=f.get("quote", ""))
+            citation_url=_cite(rows), quote=quote)
 
     # Every claim gets a record, even an empty one. A missing claim is a silent drop.
     return {i: found.get(i, Evidence()) for i in range(len(claims))}

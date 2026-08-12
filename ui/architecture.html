@@ -200,7 +200,7 @@ FORM: Audit workpaper, continuous with the demo page.
     <g class="box">
       <rect x="672" y="14" width="180" height="66"/>
       <text class="t" x="762" y="38">TREE BUILDER</text>
-      <text class="s" x="762" y="56">128 nodes · titles + spans</text>
+      <text class="s" x="762" y="56">121 nodes · titles + spans</text>
       <text class="s" x="762" y="70">no text · cached by sha256</text>
     </g>
     <g class="store">
@@ -260,7 +260,7 @@ FORM: Audit workpaper, continuous with the demo page.
       <text class="s" x="815" y="364">never a verdict</text>
     </g>
     <path class="link" d="M626,365 H690" marker-end="url(#ar)"/>
-    <text class="tag" x="646" y="252">128 summaries read · ~2 sections opened</text>
+    <text class="tag" x="646" y="252">121 summaries read · ~2 sections opened</text>
 
     <!-- decide -->
     <g class="box py">
@@ -296,9 +296,10 @@ FORM: Audit workpaper, continuous with the demo page.
   </svg>
   </div>
   <p class="figcap">
-    Blue boxes are the only places a model runs. Everything below the fourth rule is
-    deterministic Python — which is why an open-weight model is sufficient, and why the
-    verdict layer is testable with no API key.
+    <strong>The model produces claims; code determines whether those claims are actually
+    supported.</strong> Blue marks the only places a model runs. Everything below the
+    fourth rule is deterministic Python, which is why an open-weight model is sufficient
+    and why the verdict layer is testable with no API key.
   </p>
 
   <h2>The pipeline</h2>
@@ -335,20 +336,20 @@ FORM: Audit workpaper, continuous with the demo page.
 
   <h2>Why not chunk and embed</h2>
   <p>
-    This is the whole argument, and it is visible in four lines. Snowflake's FY2024 income
+    This is the whole argument, and it is visible in four lines. Datadog's FY2024 income
     statement, as it reaches the model under each approach:
   </p>
   <pre>
 <u>── structure-navigating retrieval ──────────────────────────</u>
 
 | (in thousands)  |   FY2024  |   FY2023  |
-| Total revenue   | <b>2,806,489</b> | <b>2,065,659</b> |
-| Cost of revenue |   898,558 |   717,540 |
+| Revenue         | <b>2,684,275</b> | <b>2,128,359</b> |
+| Cost of revenue |   515,531 |   409,908 |
 
 <u>── chunk at 512 tokens, embed, retrieve top-k ─────────────</u>
 
 chunk 41  "... Total revenue  Cost of revenue  Gross profit ..."   <u>← labels, no numbers</u>
-chunk 42  "... 2,806,489  2,065,659  898,558  717,540 ..."         <u>← numbers, no labels, no years</u></pre>
+chunk 42  "... 2,684,275  2,128,359  515,531  409,908 ..."         <u>← numbers, no labels, no years</u></pre>
   <div class="callout key">
     <p style="margin:0">
       Retrieve chunk 42 and the model sees digits with no idea which is revenue and which is
@@ -375,7 +376,7 @@ chunk 42  "... 2,806,489  2,065,659  898,558  717,540 ..."         <u>← number
 
   <h2>The token arithmetic</h2>
   <p>
-    A 200-page filing indexes to 128 nodes. The agent reads all 128 <em>descriptions</em> and
+    A 200-page filing indexes to 121 nodes. The agent reads all 121 <em>descriptions</em> and
     opens two or three <em>sections</em>. That ratio is the economics of the whole design.
   </p>
   <table>
@@ -442,6 +443,6 @@ chunk 42  "... 2,806,489  2,065,659  898,558  717,540 ..."         <u>← number
 
   <footer>
     The model located and read. Python decided.<br>
-    Figures on this page are from Snowflake Inc.'s FY2024 Form 10-K, filed 26 March 2024.
+    Figures on this page are from Datadog, Inc.'s FY2024 Form 10-K, filed 20 February 2025.
   </footer>
 </div>

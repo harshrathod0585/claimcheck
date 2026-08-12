@@ -44,7 +44,14 @@ def numeric_band(claim_value: float, raw: str) -> float:
 def within_tolerance(claimed: Quantity, actual: Quantity) -> tuple[bool, str]:
     """Unit, period and scale are checked BEFORE the numeric band, so that
     $4.2M and $4.2B never compare equal on their digits alone."""
-    if claimed.unit != actual.unit:
+    # COUNT is the absence of a unit, not an assertion of one: a figure lifted
+    # out of a financial table arrives as a bare number, because the currency
+    # is stated once in the column header. Rejecting "$54 million" against a
+    # retrieved "54,284" would fail every correct money claim. A genuine unit
+    # conflict is one where both sides say something and disagree.
+    meaningful = {Unit.USD, Unit.PERCENT, Unit.RATIO}
+    if (claimed.unit in meaningful and actual.unit in meaningful
+            and claimed.unit != actual.unit):
         return False, f"unit mismatch: {claimed.unit.value} vs {actual.unit.value}"
 
     if claimed.period is not None and actual.period is not None:
