@@ -43,23 +43,10 @@ trace, which is precisely this product's output.
     --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
     --sans: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   }
-  :root:not([data-theme="light"]) {
-    @media (prefers-color-scheme: dark) {
-      --pad: #161c13; --pad-2: #1b2218; --rule: #2c3927; --rule-soft: #232e1f;
-      --manila: #22261c; --manila-2: #1c2017;
-      --ink: #dfe6d8; --ink-soft: #a9b4a1; --ink-faint: #7c8775;
-      --vermilion: #e0705f; --blue: #78aada; --ochre: #d6a53c;
-      --graphite: #8d9785; --sheet-sh: rgba(0,0,0,.5);
-    }
-  }
-  :root[data-theme="dark"] {
-    --pad: #161c13; --pad-2: #1b2218; --rule: #2c3927; --rule-soft: #232e1f;
-    --manila: #22261c; --manila-2: #1c2017;
-    --ink: #dfe6d8; --ink-soft: #a9b4a1; --ink-faint: #7c8775;
-    --vermilion: #e0705f; --blue: #78aada; --ochre: #d6a53c;
-    --graphite: #8d9785; --sheet-sh: rgba(0,0,0,.5);
-  }
 
+  /* Deliberately light only. This surface is a paper object: an accounting
+     pad with pencil marks. A dark rendition is a different, weaker design, and
+     a demo should look the same to every reviewer. */
   * { box-sizing: border-box; }
 
   body {
@@ -278,6 +265,21 @@ trace, which is precisely this product's output.
     text-transform: uppercase; color: var(--blue); text-decoration: none;
     border-bottom: 1px solid var(--blue); padding-bottom: 1px;
   }
+  .url-row { display: flex; gap: 0; margin-top: 8px; }
+  .url-row input {
+    flex: 1; min-width: 0; font-family: var(--mono); font-size: 11.5px;
+    padding: 7px 9px; background: var(--pad); color: var(--ink);
+    border: 1px solid var(--ink-faint); border-right: none;
+  }
+  .url-row input::placeholder { color: var(--ink-faint); }
+  .url-row input:focus { outline: none; border-color: var(--vermilion); }
+  .url-row button {
+    font-family: var(--mono); font-size: 10.5px; letter-spacing: .1em;
+    text-transform: uppercase; cursor: pointer;
+    background: var(--ink); color: var(--pad); border: none; padding: 7px 12px;
+  }
+  .url-row button:hover { background: var(--vermilion); }
+
   #backend-state.live { color: var(--blue); }
   ul.docs li.bad { color: var(--vermilion); }
   ul.docs li.bad .rcv { color: var(--vermilion); }
@@ -453,6 +455,7 @@ trace, which is precisely this product's output.
           <input type="file" accept=".pdf,.htm,.html,.md" multiple hidden>
           Drop a deck here, or <u>choose a file</u> &nbsp;<span>pdf · html · md</span>
         </label>
+        <form class="url-row" data-role="deck"><input type="url" placeholder="or paste a filing URL"><button type="submit">Fetch</button></form>
       </div>
       <div class="drop" data-role="room">
         <div class="drop-role">Data room &nbsp;·&nbsp; the evidence</div>
@@ -461,6 +464,7 @@ trace, which is precisely this product's output.
           <input type="file" accept=".pdf,.htm,.html,.md" multiple hidden>
           Drop filings here, or <u>choose files</u> &nbsp;<span>pdf · html · md</span>
         </label>
+        <form class="url-row" data-role="room"><input type="url" placeholder="or paste a filing URL"><button type="submit">Fetch</button></form>
       </div>
     </div>
   </section>
@@ -901,6 +905,29 @@ document.querySelectorAll('.drop[data-role]').forEach(zone => {
     e.preventDefault(); zone.classList.remove('over');
   }));
   zone.addEventListener('drop', e => upload(role, e.dataTransfer.files));
+});
+
+document.querySelectorAll('.url-row').forEach(form => {
+  form.addEventListener('submit', async e => {
+    e.preventDefault();
+    const input = form.querySelector('input');
+    const url = input.value.trim();
+    if (!url) return;
+    const list = document.getElementById(form.dataset.role === 'deck' ? 'docs-deck' : 'docs-room');
+    if (!LIVE) return docRow(list, url.slice(0, 48), 'backend offline', false);
+    docRow(list, url.split('/').pop(), 'fetching…');
+    try {
+      const r = await fetch(`${API}/fetch`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url }),
+      });
+      const d = await r.json();
+      if (!r.ok) docRow(list, url.split('/').pop(), d.detail || `HTTP ${r.status}`, false);
+      else { input.value = ''; await refreshDocs(); }
+    } catch (err) {
+      docRow(list, url.split('/').pop(), String(err).slice(0, 50), false);
+    }
+  });
 });
 
 refreshDocs();

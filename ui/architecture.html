@@ -26,20 +26,9 @@ FORM: Audit workpaper, continuous with the demo page.
     --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
     --sans: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   }
-  :root:not([data-theme="light"]) {
-    @media (prefers-color-scheme: dark) {
-      --pad: #161c13; --pad-2: #1b2218; --rule: #2c3927; --rule-soft: #232e1f;
-      --manila: #22261c; --manila-2: #1c2017;
-      --ink: #dfe6d8; --ink-soft: #a9b4a1; --ink-faint: #7c8775;
-      --vermilion: #e0705f; --blue: #78aada; --ochre: #d6a53c; --graphite: #8d9785;
-    }
-  }
-  :root[data-theme="dark"] {
-    --pad: #161c13; --pad-2: #1b2218; --rule: #2c3927; --rule-soft: #232e1f;
-    --manila: #22261c; --manila-2: #1c2017;
-    --ink: #dfe6d8; --ink-soft: #a9b4a1; --ink-faint: #7c8775;
-    --vermilion: #e0705f; --blue: #78aada; --ochre: #d6a53c; --graphite: #8d9785;
-  }
+  /* Deliberately light only. This surface is a paper object: an accounting
+     pad with pencil marks. A dark rendition is a different, weaker design, and
+     a demo should look the same to every reviewer. */
   * { box-sizing: border-box; }
   body {
     margin: 0; color: var(--ink); font-family: var(--sans);

@@ -56,8 +56,15 @@ Use an empty figures list only when the document genuinely says nothing.
 
 Never invent a URL. Omit "cite"; the caller resolves it from node_ids.
 
+Copy each figure exactly as printed, and copy the table's unit statement with it.
+Financial tables state their units once in a header such as "(in thousands)" or
+"(in millions)". Without it a figure is unreadable: 2,666,849 in thousands and
+2,666,849 in units differ by a factor of a thousand. If the table states no unit,
+use an empty string.
+
 Finish with a JSON object:
-{"findings":[{"claim_index":0,"figures":[{"raw":"2,806,489","label":"Total revenue","period":"FY2024"}],
+{"findings":[{"claim_index":0,"figures":[{"raw":"2,806,489","label":"Total revenue",
+                                          "unit":"(in thousands)","period":"FY2024"}],
               "doc_id":"...","node_ids":["..."],"quote":"..."}]}"""
 
 
@@ -149,7 +156,12 @@ def _parse(content: str, claims: list[Claim]) -> dict[int, Evidence]:
     for f in data.get("findings", []):
         quantities = []
         for fig in f.get("figures", []):
-            q = parse_quantity(fig.get("raw", ""), table_unit=fig.get("label", ""))
+            # The row label carries basis and period hints; the table's unit
+            # statement carries scale. Conflating them silently reads a figure
+            # printed in thousands as units and reports a false CONTRADICTED.
+            q = parse_quantity(fig.get("raw", ""),
+                               table_unit=fig.get("unit", ""),
+                               context=fig.get("label", ""))
             if q is None:
                 continue
             p = parse_period(fig.get("period", "")) or q.period

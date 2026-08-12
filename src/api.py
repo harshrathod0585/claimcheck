@@ -92,6 +92,66 @@ async def upload(role: str = Form("room"), files: list[UploadFile] = File(...)) 
     return {"documents": out}
 
 
+@app.post("/fetch")
+async def fetch_url(body: dict) -> dict:
+    """Pull a filing straight from a URL, then index it like an upload.
+
+    Fetching a user-supplied URL server-side is an SSRF surface, so private and
+    loopback addresses are refused even though this normally runs locally.
+    """
+    import ipaddress
+    import socket
+    import urllib.parse
+    import urllib.request
+
+    from .loader import load
+    from .tree import NoStructure, build_tree, walk
+
+    url = (body.get("url") or "").strip()
+    parts = urllib.parse.urlparse(url)
+    if parts.scheme not in ("http", "https") or not parts.hostname:
+        raise HTTPException(400, "url must be http or https")
+
+    try:
+        resolved = socket.gethostbyname(parts.hostname)
+    except socket.gaierror:
+        raise HTTPException(400, f"cannot resolve {parts.hostname}") from None
+    addr = ipaddress.ip_address(resolved)
+    if addr.is_private or addr.is_loopback or addr.is_link_local or addr.is_reserved:
+        raise HTTPException(400, "refusing to fetch a private address")
+
+    name = pathlib.Path(parts.path).name or "document.htm"
+    if pathlib.Path(name).suffix.lower() not in ALLOWED:
+        name += ".htm"
+
+    # EDGAR requires a descriptive User-Agent and rejects the default one.
+    req = urllib.request.Request(url, headers={
+        "User-Agent": os.environ.get("FETCH_UA", "ClaimCheck research contact@example.com")})
+    try:
+        with urllib.request.urlopen(req, timeout=60) as r:
+            data = r.read(int(os.environ.get("MAX_FETCH_BYTES", 40_000_000)))
+    except Exception as exc:
+        raise HTTPException(400, f"fetch failed: {type(exc).__name__}: {exc}"[:200]) from None
+
+    dest = CORPUS / name
+    dest.write_bytes(data)
+    try:
+        tree = build_tree(load(dest))
+        nodes = sum(1 for _ in walk(tree))
+    except NoStructure as exc:
+        dest.unlink(missing_ok=True)
+        raise HTTPException(422, f"no recoverable structure: {exc}") from None
+    except Exception as exc:
+        dest.unlink(missing_ok=True)
+        raise HTTPException(422, f"{type(exc).__name__}: {exc}"[:200]) from None
+
+    from . import tools as _t
+    _t._paths.cache_clear()
+    _t._manifest.cache_clear()
+    return {"doc_id": dest.stem, "name": dest.name, "nodes": nodes,
+            "bytes": len(data), "source": url}
+
+
 @app.post("/extract")
 async def extract_claims(body: dict) -> dict:
     """Run the real extractor over one document. Returns typed claims."""
