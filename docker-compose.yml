@@ -1,0 +1,36 @@
+services:
+  app:
+    build: .
+    ports:
+      - "8000:8000"
+    environment:
+      # No key needed to replay the committed sample run; only fresh runs call a model.
+      LLM_BASE_URL: ${LLM_BASE_URL:-}
+      LLM_MODEL: ${LLM_MODEL:-}
+      LLM_API_KEY: ${LLM_API_KEY:-}
+      REDIS_URL: redis://redis:6379/0
+      MONGO_URL: mongodb://mongo:27017/claimcheck
+    depends_on:
+      redis:
+        condition: service_healthy
+      mongo:
+        condition: service_healthy
+
+  redis:  # tree cache, content-addressed by sha256(file_bytes)
+    image: redis:7-alpine
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 3s
+      retries: 10
+
+  mongo:  # run state, for resume
+    image: mongo:7
+    volumes:
+      - mongo-data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping')"]
+      interval: 3s
+      retries: 10
+
+volumes:
+  mongo-data:

@@ -1,0 +1,11 @@
+openai~=1.99          # OpenAI-compatible client, pointed at Groq/OpenRouter/Ollama
+markdownify~=0.14     # HTML -> markdown, tables intact
+lxml~=5.3             # HTML parsing for the tree builder
+pypdf~=5.1            # PDF text extraction
+rank_bm25~=0.2
+fastapi~=0.115
+uvicorn~=0.34
+redis~=5.2
+pymongo~=4.10
+pydantic~=2.10
+pytest~=8.3

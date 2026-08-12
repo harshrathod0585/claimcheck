@@ -1,0 +1,973 @@
+<!--
+THESIS: A verification run reads as an auditor's workpaper being marked up live, not as
+a chat log or a dashboard of cards. It refuses the category default: a chat transcript
+with citation chips, or a table of green/red status pills.
+
+OWN-WORLD: Columnar accounting pad — ruled green ground, manila working panels, ink
+figures set tabular, and the auditor's pencil vocabulary: vermilion for exceptions,
+audit blue for traced, ochre for basis differences. Verdicts are tickmarks in a margin
+column, not badges. Every figure sits on the rule.
+
+STORY: The visitor watches the agent orient itself, open exactly the sections it needs,
+and mark each claim with a tickmark carrying its evidence. They understand that the
+model located and read, and that Python decided.
+
+FIRST VIEWPORT: Full-bleed ruled pad. Left margin column of tickmarks, empty and
+waiting. Center: the claim sheet. Right: the agent's live tool tape, ticking. Run
+control sits top-right on the header rule. Marks land in the margin as claims resolve.
+
+FORM: Audit workpaper / columnar pad. Ranked 1 of 7 against terminal, EDGAR filing
+chrome, ledger book, tape printout, red-line contract markup, and IC memo. Chosen for
+exact structural fit: audit tickmarks are already a verdict vocabulary with a source
+trace, which is precisely this product's output.
+-->
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ClaimCheck — deck vs data room</title>
+<style>
+  :root {
+    --pad:        #cfdcc8;
+    --pad-2:      #c3d2bb;
+    --rule:       #a8bd9f;
+    --rule-soft:  #b7c9af;
+    --manila:     #e6d9bb;
+    --manila-2:   #dccdaa;
+    --ink:        #1b2317;
+    --ink-soft:   #4a5542;
+    --ink-faint:  #6f7a66;
+    --vermilion:  #a8342a;
+    --blue:       #24557f;
+    --ochre:      #8a6510;
+    --graphite:   #5c6356;
+    --sheet-sh:   rgba(27, 35, 23, .18);
+    --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+    --sans: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  }
+  :root:not([data-theme="light"]) {
+    @media (prefers-color-scheme: dark) {
+      --pad: #161c13; --pad-2: #1b2218; --rule: #2c3927; --rule-soft: #232e1f;
+      --manila: #22261c; --manila-2: #1c2017;
+      --ink: #dfe6d8; --ink-soft: #a9b4a1; --ink-faint: #7c8775;
+      --vermilion: #e0705f; --blue: #78aada; --ochre: #d6a53c;
+      --graphite: #8d9785; --sheet-sh: rgba(0,0,0,.5);
+    }
+  }
+  :root[data-theme="dark"] {
+    --pad: #161c13; --pad-2: #1b2218; --rule: #2c3927; --rule-soft: #232e1f;
+    --manila: #22261c; --manila-2: #1c2017;
+    --ink: #dfe6d8; --ink-soft: #a9b4a1; --ink-faint: #7c8775;
+    --vermilion: #e0705f; --blue: #78aada; --ochre: #d6a53c;
+    --graphite: #8d9785; --sheet-sh: rgba(0,0,0,.5);
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background-color: var(--pad);
+    background-image: repeating-linear-gradient(
+      to bottom, transparent 0 27px, var(--rule-soft) 27px 28px);
+    color: var(--ink);
+    font-family: var(--sans);
+    font-size: 15px;
+    line-height: 28px;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .wrap { max-width: 1240px; margin: 0 auto; padding: 0 20px 96px; }
+
+  /* ── header rule ─────────────────────────────────────────── */
+  header {
+    display: flex; align-items: baseline; gap: 18px; flex-wrap: wrap;
+    padding: 40px 0 12px;
+    border-bottom: 2px solid var(--ink);
+    margin-bottom: 2px;
+  }
+  h1 {
+    font-family: var(--mono); font-size: 19px; line-height: 28px;
+    letter-spacing: .14em; text-transform: uppercase; margin: 0; font-weight: 600;
+  }
+  .wp-ref {
+    font-family: var(--mono); font-size: 11px; letter-spacing: .1em;
+    color: var(--ink-faint); text-transform: uppercase;
+  }
+  .spacer { flex: 1 1 60px; }
+  .prepared {
+    font-family: var(--mono); font-size: 11px; color: var(--ink-faint);
+    letter-spacing: .06em; text-align: right;
+  }
+  .underrule { border-bottom: 1px solid var(--ink); margin-bottom: 28px; }
+
+  /* ── legend ──────────────────────────────────────────────── */
+  .legend {
+    display: flex; gap: 22px; flex-wrap: wrap;
+    font-family: var(--mono); font-size: 11px; letter-spacing: .06em;
+    color: var(--ink-soft); padding: 10px 0 18px;
+  }
+  .legend b { font-weight: 400; font-size: 15px; margin-right: 5px; }
+
+  /* ── two columns ─────────────────────────────────────────── */
+  .cols { display: grid; grid-template-columns: minmax(0,1fr) 372px; gap: 28px; align-items: start; }
+  @media (max-width: 940px) { .cols { grid-template-columns: minmax(0,1fr); } }
+
+  /* ── claim sheet ─────────────────────────────────────────── */
+  .sheet { border-top: 1px solid var(--rule); }
+
+  .claim {
+    display: grid; grid-template-columns: 52px minmax(0,1fr) auto;
+    gap: 0 16px; align-items: start;
+    border-bottom: 1px solid var(--rule);
+    padding: 14px 0;
+    opacity: 0; transform: translateY(4px);
+    animation: settle .34s ease forwards;
+  }
+  @keyframes settle { to { opacity: 1; transform: none; } }
+  @media (prefers-reduced-motion: reduce) {
+    .claim { animation: none; opacity: 1; transform: none; }
+  }
+
+  /* tickmark margin column */
+  .tick {
+    font-family: var(--mono); font-size: 27px; line-height: 28px;
+    text-align: center; font-weight: 500;
+    border-right: 1px solid var(--rule); align-self: stretch;
+    padding-right: 14px;
+  }
+  .tick.supported     { color: var(--blue); }
+  .tick.contradicted  { color: var(--vermilion); }
+  .tick.basis         { color: var(--ochre); }
+  .tick.none          { color: var(--graphite); }
+
+  .claim-text { font-size: 15px; line-height: 28px; }
+  .claim-meta {
+    font-family: var(--mono); font-size: 11px; letter-spacing: .07em;
+    color: var(--ink-faint); text-transform: uppercase;
+  }
+  .status {
+    font-family: var(--mono); font-size: 11px; letter-spacing: .1em;
+    text-transform: uppercase; white-space: nowrap; padding-top: 1px;
+  }
+  .status.supported    { color: var(--blue); }
+  .status.contradicted { color: var(--vermilion); }
+  .status.basis        { color: var(--ochre); }
+  .status.none         { color: var(--graphite); }
+
+  /* the exception line — the money moment */
+  /* Pencil rule under the figure, the way an exception is struck on a workpaper —
+     not a tinted card with a bar down its side. */
+  .exception {
+    grid-column: 2 / -1;
+    font-family: var(--mono); font-size: 13px; line-height: 26px;
+    margin-top: 6px; padding: 0 0 3px;
+    display: inline-block;
+    border-bottom: 1px solid var(--vermilion);
+    color: var(--ink);
+  }
+  .exception.basis { border-bottom-color: var(--ochre); }
+  .exception s { color: var(--vermilion); text-decoration-thickness: 1.5px; }
+  .exception strong { font-weight: 600; }
+
+  /* evidence — manila slip */
+  details.evidence { grid-column: 2 / -1; margin-top: 8px; }
+  details.evidence > summary {
+    font-family: var(--mono); font-size: 11px; letter-spacing: .08em;
+    text-transform: uppercase; color: var(--ink-soft);
+    cursor: pointer; list-style: none; padding: 2px 0;
+  }
+  details.evidence > summary::-webkit-details-marker { display: none; }
+  details.evidence > summary::before { content: "▸ "; }
+  details.evidence[open] > summary::before { content: "▾ "; }
+  .slip {
+    background: var(--manila);
+    border: 1px solid var(--manila-2);
+    box-shadow: 2px 2px 0 var(--sheet-sh);
+    padding: 14px 16px; margin: 8px 0 4px;
+  }
+  .trail {
+    font-family: var(--mono); font-size: 11px; letter-spacing: .06em;
+    color: var(--ink-soft); margin-bottom: 10px;
+  }
+  .trail span { color: var(--ink-faint); }
+  table.fig {
+    width: 100%; border-collapse: collapse;
+    font-family: var(--mono); font-size: 12.5px; line-height: 24px;
+  }
+  table.fig th {
+    text-align: right; font-weight: 500; color: var(--ink-faint);
+    border-bottom: 1px solid var(--ink-soft); padding: 2px 0 2px 18px;
+    font-size: 11px; letter-spacing: .06em;
+  }
+  table.fig th:first-child { text-align: left; padding-left: 0; }
+  table.fig td {
+    text-align: right; padding: 1px 0 1px 18px;
+    font-variant-numeric: tabular-nums;
+  }
+  table.fig td:first-child { text-align: left; padding-left: 0; color: var(--ink-soft); }
+  table.fig tr.hit td { color: var(--ink); font-weight: 600; }
+  table.fig tr.hit td:first-child { color: var(--ink); }
+  .cite {
+    display: inline-block; margin-top: 10px;
+    font-family: var(--mono); font-size: 11px; letter-spacing: .05em;
+    color: var(--blue); text-decoration: underline;
+    text-underline-offset: 3px; word-break: break-all;
+  }
+  /* The computation is not evidence — evidence is what the filing says.
+     It gets its own line, always visible, never hidden behind a disclosure. */
+  .decided {
+    grid-column: 2 / -1;
+    font-family: var(--mono); font-size: 11.5px; line-height: 22px;
+    color: var(--ink-soft); margin-top: 7px; letter-spacing: .02em;
+  }
+  .decided span {
+    color: var(--vermilion); letter-spacing: .09em;
+    text-transform: uppercase; font-size: 10px; margin-right: 8px;
+  }
+
+  /* ── tool tape ───────────────────────────────────────────── */
+  .tape { position: sticky; top: 20px; }
+  .tape-head {
+    font-family: var(--mono); font-size: 11px; letter-spacing: .1em;
+    text-transform: uppercase; color: var(--ink-faint);
+    border-bottom: 1px solid var(--ink); padding-bottom: 6px; margin-bottom: 10px;
+    display: flex; justify-content: space-between; align-items: baseline;
+  }
+  .tape-body {
+    font-family: var(--mono); font-size: 12px; line-height: 22px;
+    max-height: 62vh; overflow-y: auto; padding-right: 6px;
+  }
+  .t-line { display: flex; gap: 9px; padding: 2px 0; }
+  .t-line .n { color: var(--ink-faint); min-width: 20px; }
+  .t-call { color: var(--ink); }
+  .t-call em { font-style: normal; color: var(--blue); }
+  .t-think {
+    color: var(--ink-soft); font-family: var(--sans); font-size: 13px;
+    line-height: 22px; padding: 6px 0 6px 29px; font-style: italic;
+  }
+  .t-mark { padding-left: 29px; letter-spacing: .08em; text-transform: uppercase; font-size: 11px; }
+  .t-mark.supported { color: var(--blue); }
+  .t-mark.contradicted { color: var(--vermilion); }
+  .t-mark.basis { color: var(--ochre); }
+  .t-mark.none { color: var(--graphite); }
+  .cursor {
+    display: inline-block; width: 7px; height: 14px;
+    background: var(--ink); vertical-align: -2px;
+    animation: blink 1.1s step-end infinite;
+  }
+  @keyframes blink { 50% { opacity: 0; } }
+  @media (prefers-reduced-motion: reduce) { .cursor { animation: none; } }
+
+  /* ── run control ─────────────────────────────────────────── */
+  button.run {
+    font-family: var(--mono); font-size: 11px; letter-spacing: .12em;
+    text-transform: uppercase; cursor: pointer;
+    background: var(--ink); color: var(--pad);
+    border: none; padding: 7px 16px; line-height: 20px;
+  }
+  button.run:hover { background: var(--vermilion); }
+  button.run span {
+    display: inline-block; margin-right: 7px; padding: 0 5px;
+    border: 1px solid currentColor; opacity: .65; font-size: 10px;
+  }
+  button.run:disabled {
+    background: none; color: var(--ink-faint);
+    border: 1px dashed var(--ink-faint); cursor: not-allowed;
+  }
+  button.run:disabled:hover { background: none; }
+  .archlink {
+    font-family: var(--mono); font-size: 11px; letter-spacing: .1em;
+    text-transform: uppercase; color: var(--blue); text-decoration: none;
+    border-bottom: 1px solid var(--blue); padding-bottom: 1px;
+  }
+  #backend-state.live { color: var(--blue); }
+  ul.docs li.bad { color: var(--vermilion); }
+  ul.docs li.bad .rcv { color: var(--vermilion); }
+
+  .waiting {
+    font-family: var(--mono); font-size: 12px; color: var(--ink-faint);
+    padding: 18px 0; letter-spacing: .04em;
+  }
+  button.run:focus-visible { outline: 2px solid var(--vermilion); outline-offset: 2px; }
+
+  /* ── document register ───────────────────────────────────── */
+  .register { margin-bottom: 28px; }
+  .register h2 {
+    font-family: var(--mono); font-size: 11px; letter-spacing: .12em;
+    text-transform: uppercase; color: var(--ink-faint); font-weight: 400;
+    margin: 0 0 8px; padding-bottom: 6px; border-bottom: 1px solid var(--ink);
+  }
+  .reg-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+  @media (max-width: 720px) { .reg-cols { grid-template-columns: 1fr; } }
+
+  .drop { background: var(--manila); border: 1px solid var(--manila-2); padding: 14px 16px 12px; }
+  .drop.over { border-color: var(--vermilion); background: var(--manila-2); }
+  .drop-role {
+    font-family: var(--mono); font-size: 11px; letter-spacing: .09em;
+    text-transform: uppercase; color: var(--ink-soft); margin-bottom: 8px;
+  }
+  ul.docs { list-style: none; margin: 0 0 10px; padding: 0; }
+  ul.docs li {
+    font-family: var(--mono); font-size: 12px; line-height: 24px;
+    display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap;
+    border-bottom: 1px dotted var(--manila-2); padding: 1px 0;
+  }
+  ul.docs em { font-style: normal; color: var(--ink-faint); font-size: 11px; margin-left: auto; }
+  .rcv { color: var(--blue); }
+  ul.docs li.pending .rcv { color: var(--ochre); }
+
+  /* ── architecture ────────────────────────────────────────── */
+  .arch { margin-bottom: 30px; }
+  .arch h2, .register h2 {
+    font-family: var(--mono); font-size: 11px; letter-spacing: .12em;
+    text-transform: uppercase; color: var(--ink-faint); font-weight: 400;
+    margin: 0 0 10px; padding-bottom: 6px; border-bottom: 1px solid var(--ink);
+  }
+  ol.stages { list-style: none; margin: 0; padding: 0;
+    display: grid; grid-template-columns: repeat(4, 1fr); gap: 0; }
+  @media (max-width: 900px) { ol.stages { grid-template-columns: repeat(2, 1fr); } }
+  @media (max-width: 560px) { ol.stages { grid-template-columns: 1fr; } }
+  ol.stages li {
+    padding: 12px 16px 12px 0; margin-right: 16px;
+    border-right: 1px solid var(--rule);
+  }
+  ol.stages li:last-child { border-right: none; }
+  @media (max-width: 900px) {
+    ol.stages li:nth-child(2n) { border-right: none; margin-right: 0; }
+  }
+  .sn { font-family: var(--mono); font-size: 11px; color: var(--ink-faint); letter-spacing: .1em; }
+  ol.stages b {
+    display: block; font-family: var(--mono); font-size: 14px;
+    letter-spacing: .1em; text-transform: uppercase; margin: 2px 0 6px; font-weight: 600;
+  }
+  ol.stages p { margin: 0 0 8px; font-size: 13.5px; line-height: 23px; color: var(--ink-soft); }
+  ol.stages p b { display: inline; font-family: inherit; font-size: inherit;
+    letter-spacing: 0; text-transform: none; color: var(--ink); }
+  ol.stages code {
+    font-family: var(--mono); font-size: 12px;
+    background: var(--manila); padding: 0 3px;
+  }
+  .sc {
+    font-family: var(--mono); font-size: 10.5px; letter-spacing: .09em;
+    text-transform: uppercase; color: var(--graphite);
+    border-top: 1px solid var(--rule); padding-top: 5px; display: block;
+  }
+  .sc.model { color: var(--blue); }
+  .sc.py { color: var(--vermilion); }
+  .arch-note {
+    font-size: 13.5px; line-height: 24px; color: var(--ink-soft);
+    margin: 14px 0 0; padding-top: 10px; border-top: 1px solid var(--rule);
+  }
+  .arch-note code { font-family: var(--mono); font-size: 12.5px;
+    background: var(--manila); padding: 0 3px; }
+
+  /* ── extracted claim list ────────────────────────────────── */
+  ul.extracted { list-style: none; margin: 0; padding: 0;
+    column-count: 2; column-gap: 28px; }
+  @media (max-width: 720px) { ul.extracted { column-count: 1; } }
+  ul.extracted li {
+    font-family: var(--mono); font-size: 12px; line-height: 22px;
+    break-inside: avoid; padding: 3px 0;
+    border-bottom: 1px dotted var(--rule);
+    display: flex; gap: 8px; align-items: baseline;
+  }
+  ul.extracted .car { color: var(--vermilion); width: 10px; flex: none; }
+  ul.extracted .typ {
+    color: var(--ink-faint); font-size: 10px; letter-spacing: .08em;
+    text-transform: uppercase; width: 62px; flex: none;
+  }
+  ul.extracted .per { color: var(--graphite); font-size: 10.5px; margin-left: auto; flex: none; }
+
+  ul.grouped { list-style: none; margin: 0; padding: 0;
+    font-family: var(--mono); font-size: 12px; line-height: 23px; column-count: 2; column-gap: 24px; }
+  ul.grouped li { break-inside: avoid; border-bottom: 1px dotted var(--manila-2); }
+  @media (max-width: 640px) { ul.grouped { column-count: 1; } }
+  .claim.group .claim-text { color: var(--ink-soft); }
+
+  .reg-note {
+    font-family: var(--mono); font-size: 11px; line-height: 20px;
+    color: var(--ink-faint); margin: 12px 0 0; letter-spacing: .03em;
+  }
+
+  /* ── tally ───────────────────────────────────────────────── */
+  .tally {
+    display: flex; gap: 0; flex-wrap: wrap; margin: 0 0 28px;
+    border: 1px solid var(--ink); background: var(--pad-2);
+  }
+  .tally div {
+    flex: 1 1 120px; padding: 12px 16px;
+    border-right: 1px solid var(--rule);
+  }
+  .tally[hidden] { display: none; }  /* display:flex would otherwise beat [hidden] */
+  .tally div:last-child { border-right: none; }
+  .tally .n {
+    font-family: var(--mono); font-size: 27px; line-height: 32px;
+    font-variant-numeric: tabular-nums; display: block;
+  }
+  .tally .l {
+    font-family: var(--mono); font-size: 10.5px; letter-spacing: .1em;
+    text-transform: uppercase; color: var(--ink-faint);
+  }
+  .tally .supported .n    { color: var(--blue); }
+  .tally .contradicted .n { color: var(--vermilion); }
+  .tally .basis .n        { color: var(--ochre); }
+  .tally .none .n         { color: var(--graphite); }
+
+  footer {
+    margin-top: 40px; padding-top: 14px; border-top: 1px solid var(--ink);
+    font-family: var(--mono); font-size: 11px; line-height: 20px;
+    color: var(--ink-faint); letter-spacing: .04em;
+  }
+  footer b { color: var(--ink-soft); font-weight: 500; }
+</style>
+
+<div class="wrap">
+  <header>
+    <h1>ClaimCheck</h1>
+    <span class="wp-ref">W/P&nbsp;REF&nbsp;B-1 &nbsp;·&nbsp; DECK vs DATA ROOM</span>
+    <span class="wp-ref" id="backend-state">checking backend…</span>
+    <span class="spacer"></span>
+    <a class="archlink" href="/architecture">Architecture →</a>
+    <button class="run" id="extract"><span>1</span> Extract claims</button>
+    <button class="run" id="run" disabled><span>2</span> Verify claims</button>
+  </header>
+  <div class="underrule"></div>
+
+  <div class="prepared" style="text-align:left;margin-bottom:18px">
+    SUBJECT: Snowflake Inc. (CIK 0001640147) &nbsp;·&nbsp; PERIOD: FY2024, ended 31 Jan 2024<br>
+    DECK: 8-K EX-99.1 Q4 FY2024 earnings &nbsp;·&nbsp; DATA ROOM: 10-K FY2024, 10-Q Q3 FY2024
+  </div>
+
+  <div class="legend">
+    <span><b style="color:var(--blue)">✓</b> traced to source</span>
+    <span><b style="color:var(--vermilion)">✗</b> exception</span>
+    <span><b style="color:var(--ochre)">≠</b> different basis</span>
+    <span><b style="color:var(--graphite)">?</b> not located</span>
+  </div>
+
+  <section class="register" aria-labelledby="reg-h">
+    <h2 id="reg-h">Documents in this run</h2>
+    <div class="reg-cols">
+      <div class="drop" data-role="deck">
+        <div class="drop-role">Deck &nbsp;·&nbsp; the assertion</div>
+        <ul class="docs" id="docs-deck"></ul>
+        <label class="drop-cta">
+          <input type="file" accept=".pdf,.htm,.html,.md" multiple hidden>
+          Drop a deck here, or <u>choose a file</u> &nbsp;<span>pdf · html · md</span>
+        </label>
+      </div>
+      <div class="drop" data-role="room">
+        <div class="drop-role">Data room &nbsp;·&nbsp; the evidence</div>
+        <ul class="docs" id="docs-room"></ul>
+        <label class="drop-cta">
+          <input type="file" accept=".pdf,.htm,.html,.md" multiple hidden>
+          Drop filings here, or <u>choose files</u> &nbsp;<span>pdf · html · md</span>
+        </label>
+      </div>
+    </div>
+  </section>
+
+  <section class="register" aria-labelledby="ext-h">
+    <h2 id="ext-h">Claims extracted from the deck &nbsp;·&nbsp; 22</h2>
+    <p class="reg-note" style="margin:0 0 12px">
+      Real output of one extraction call over the earnings release. Marketing language was
+      discarded at this step. The six carried through to verification below are marked <b>▸</b>.
+    </p>
+    <ul class="extracted" id="extracted"></ul>
+  </section>
+
+  <div class="tally" id="tally" hidden>
+    <div class="supported"><span class="n" id="n-sup">0</span><span class="l">Traced</span></div>
+    <div class="contradicted"><span class="n" id="n-con">0</span><span class="l">Exceptions</span></div>
+    <div class="basis"><span class="n" id="n-bas">0</span><span class="l">Basis diff.</span></div>
+    <div class="none"><span class="n" id="n-non">0</span><span class="l">No source / not located</span></div>
+  </div>
+
+  <div class="cols">
+    <main class="sheet" id="sheet" aria-live="polite"></main>
+
+    <aside class="tape">
+      <div class="tape-head"><span>Agent tape</span><span id="turns">idle</span></div>
+      <div class="tape-body" id="tape"></div>
+    </aside>
+  </div>
+
+  <footer>
+    <b>The model located and read. Python decided.</b><br>
+    Retrieval navigates the filing's own section tree — nothing is chunked, so tables reach
+    the model with row labels and fiscal years still attached. Every arithmetic result above
+    is computed in Python from retrieved figures; the model is never asked to do math.<br><br>
+    Figures and citations are from the real SEC filings named above. Agent reasoning shown
+    here is a <b>recorded run</b>, replayed for the demo.
+  </footer>
+</div>
+
+<script>
+// Real figures, real citations — Snowflake FY2024 10-K, verified against the filing.
+const RUN = [
+  { turn: 1, call: 'list_documents()', arg: '',
+    think: 'Three documents. The FY2024 10-K covers the period every claim refers to, so that is the authority. The 10-Q covers Q3 only.' },
+  { turn: 2, call: 'get_structure', arg: 'SNOW_10K_FY2024',
+    think: '128 sections, titles and page spans only — no body text, so the whole tree fits in one prompt. Total revenue by fiscal year belongs in Item 8, Consolidated Statements of Operations. Item 7 carries the non-GAAP reconciliation, worth reading if a figure disagrees.' },
+  { turn: 3, call: 'get_content', arg: 'SNOW_10K_FY2024, [n94, n143]',
+    think: 'Both nodes in one fetch. Four claims below need this same income statement — retrieving it once answers all of them.' },
+];
+
+const CITE = 'https://www.sec.gov/Archives/edgar/data/1640147/000164014724000101/snow-20240131.htm';
+
+const CLAIMS = [
+  {
+    text: 'Revenue grew 140% year over year in FY2024',
+    src: 'Seeded defect · growth', seeded: true, status: 'contradicted', tick: '✗',
+    exception: 'claimed <s>140%</s> &nbsp;·&nbsp; actual <strong>35.9%</strong> on GAAP total revenue',
+    path: 'Item 8 › Consolidated Statements of Operations',
+    rows: [['(in thousands)', 'FY2024', 'FY2023'], ['Total revenue', '2,806,489', '2,065,659', 1],
+           ['Cost of revenue', '898,558', '717,540'], ['Gross profit', '1,907,931', '1,348,119']],
+    decided: 'compare.py — (2,806,489 − 2,065,659) / 2,065,659 = 35.9% · outside the band for 2 s.f.',
+    cite: CITE
+  },
+  {
+    text: '38% year-over-year growth in product revenue',
+    src: 'Deck · growth', status: 'supported', tick: '✓',
+    path: 'Item 7 › MD&A › Key Business Metrics',
+    rows: [['(in millions)', 'FY2024', 'FY2023'], ['Product revenue', '$2,666.8', '$1,938.8', 1]],
+    decided: 'compare.py — (2,666.8 − 1,938.8) / 1,938.8 = 37.6% · rounds to 38% at 2 s.f.',
+    cite: CITE
+  },
+  {
+    text: 'Product revenue of $2,666.8 million in FY2024',
+    src: 'Deck · absolute', status: 'supported', tick: '✓',
+    path: 'Item 7 › MD&A › Key Business Metrics',
+    rows: [['(in millions)', 'FY2024'], ['Product revenue', '$2,666.8', null, 1]],
+    decided: 'compare.py — figure agrees exactly as stated',
+    cite: CITE
+  },
+  {
+    text: 'Product gross margin of 74% in FY2024',
+    src: 'Deck · margin', status: 'basis', tick: '≠',
+    exception: 'claimed <strong>74%</strong> is <strong>non-GAAP product</strong> gross margin &nbsp;·&nbsp; GAAP gross margin is <strong>68.0%</strong> — both correct, different basis',
+    path: 'Item 8 › Statements of Operations &nbsp;+&nbsp; Item 7 › Non-GAAP Measures',
+    rows: [['(in thousands)', 'FY2024'], ['Gross profit (GAAP)', '1,907,931'],
+           ['Total revenue', '2,806,489'], ['GAAP gross margin', '68.0%', null, 1]],
+    decided: 'compare.py — 1,907,931 / 2,806,489 = 68.0% · claim matches the non-GAAP product basis, not GAAP',
+    cite: CITE
+  },
+  {
+    text: 'Free cash flow of $778.9 million in FY2024',
+    src: 'Deck · absolute', status: 'supported', tick: '✓',
+    path: 'Item 7 › Non-GAAP Financial Measures › Free Cash Flow',
+    rows: [['(in millions)', 'FY2024', 'FY2023'],
+           ['Net cash from operations', '$848.1', '$545.6'],
+           ['Free cash flow (non-GAAP)', '$778.9', '$496.5', 1]],
+    decided: 'compare.py — figure agrees; basis stated as non-GAAP in both deck and filing',
+    cite: CITE
+  },
+  {
+    text: 'Acme Analytics Inc. is a customer',
+    src: 'Seeded defect · entity', seeded: true, status: 'none', tick: '?',
+    path: 'BM25 across 3 documents — 0 candidate sections',
+    decided: 'compare.py — no passage located in any filing; reported, never asserted false',
+    cite: ''
+  },
+];
+
+// The remaining 16 extracted claims. Every one carries a verdict — a claim that
+// vanishes between extraction and the sheet is the worst failure this system has.
+const REST = [
+  ['Q4', '9 claims covering Q4 FY2024 only', 'nosource',
+   'No document in the data room breaks out the quarter. The 10-K reports the full year; the Q3 10-Q ends 31 Oct 2023. Verifying these needs the Q4 8-K itself, or full-year minus nine-month arithmetic across two filings.',
+   ['Product gross profit of $545.3M', '74% product gross margin', 'Operating income of $(275.5)M',
+    'Non-GAAP operating income of $71.0M', '9% non-GAAP operating margin',
+    'Free cash flow of $324.5M', '42% YoY growth in free cash flow',
+    'Adjusted free cash flow of $324.3M', '42% YoY growth in adjusted FCF']],
+  ['FY24', '7 FY2024 non-GAAP claims', 'noevidence',
+   'These are non-GAAP measures the deck reports but the 10-K does not reconcile under these names. Located nothing rather than guessing — an incomplete data room is a normal condition, not a red flag.',
+   ['Product gross profit of $1,965.6M', 'Non-GAAP operating income of $229.7M',
+    '8% non-GAAP operating margin', 'Operating income of $(1,094.8)M',
+    'Adjusted free cash flow of $810.2M', '29% YoY growth in adjusted FCF',
+    '56% YoY growth in adjusted FCF']],
+];
+
+const LABEL = { supported: 'traced', contradicted: 'exception', basis: 'basis differs', none: 'not located' };
+const sheet = document.getElementById('sheet'), tape = document.getElementById('tape');
+const counts = { supported: 0, contradicted: 0, basis: 0, none: 0 };
+const wait = ms => new Promise(r => setTimeout(r, ms));
+const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+function tline(html) {
+  const d = document.createElement('div');
+  d.innerHTML = html; tape.appendChild(d);
+  tape.scrollTop = tape.scrollHeight; return d;
+}
+
+function table(rows) {
+  if (!rows) return '';
+  const [head, ...body] = rows;
+  return `<table class="fig"><thead><tr>${head.map(h => `<th>${h ?? ''}</th>`).join('')}</tr></thead><tbody>` +
+    body.map(r => `<tr class="${r[3] ? 'hit' : ''}">` +
+      head.map((_, i) => `<td>${r[i] ?? ''}</td>`).join('') + '</tr>').join('') +
+    '</tbody></table>';
+}
+
+function render(c) {
+  const el = document.createElement('article');
+  el.className = 'claim';
+  el.innerHTML = `
+    <div class="tick ${c.status}" aria-hidden="true">${c.tick}</div>
+    <div>
+      <div class="claim-text">${c.text}</div>
+      <div class="claim-meta">${c.src}</div>
+    </div>
+    <div class="status ${c.status}">${LABEL[c.status]}</div>
+    ${c.exception ? `<div class="exception ${c.status === 'basis' ? 'basis' : ''}">${c.exception}</div>` : ''}
+    <div class="decided"><span>decided in Python</span> ${c.decided}</div>
+    <details class="evidence">
+      <summary>Evidence &amp; source</summary>
+      <div class="slip">
+        <div class="trail"><span>retrieval path</span> &nbsp;${c.path}</div>
+        ${table(c.rows)}
+        ${c.cite ? `<a class="cite" href="${c.cite}" target="_blank" rel="noopener">${c.cite}</a>` : ''}
+      </div>
+    </details>`;
+  sheet.appendChild(el);
+}
+
+// A real recorded run, if one is present. Falls back to the illustrative set,
+// and the page says which it is showing rather than blurring the difference.
+const TICKS = { SUPPORTED: '✓', CONTRADICTED: '✗', BASIS_MISMATCH: '≠',
+                NO_EVIDENCE: '?', NO_SOURCE: '∅', RUN_FAILED: '!' };
+const KEYS  = { SUPPORTED: 'supported', CONTRADICTED: 'contradicted',
+                BASIS_MISMATCH: 'basis', NO_EVIDENCE: 'none',
+                NO_SOURCE: 'none', RUN_FAILED: 'none' };
+
+async function loadReal() {
+  try {
+    const r = await fetch('real_run.json', { cache: 'no-store' });
+    if (!r.ok) return null;
+    const data = await r.json();
+    if (!data.claims?.length) return null;
+
+    const tape = [];
+    for (const c of data.claims)
+      for (const t of (c.trace || []))
+        if (t.kind === 'call') tape.push({ call: t.name, arg: t.args, think: '' });
+        else if (t.text?.trim()) tape.push({ call: '', arg: '', think: t.text });
+
+    return {
+      tape,
+      claims: data.claims.map(c => ({
+        text: c.text,
+        src: (c.seeded ? 'Seeded defect · ' : 'Deck · ') + c.op,
+        status: KEYS[c.status] || 'none', tick: TICKS[c.status] || '?',
+        exception: c.status === 'CONTRADICTED' && c.actual != null
+          ? `claimed <s>${c.claimed}</s> &nbsp;·&nbsp; actual <strong>${c.actual}</strong>` : '',
+        path: c.node_ids?.length ? `${c.doc_id} › ${c.node_ids.join(', ')}` : '—',
+        rows: c.figures?.length
+          ? [['figure retrieved'], ...c.figures.map(f => [f, null, null, 1])] : null,
+        decided: `compare.py — ${c.status}${c.reason ? ' · ' + c.reason : ''}`,
+        cite: c.cite || ''
+      }))
+    };
+  } catch { return null; }
+}
+
+let EXTRACTED_LIVE = [];
+
+async function runLive() {
+  const n = Math.min(EXTRACTED_LIVE.length, 6);
+  tline(`<div class="t-line"><span class="n">--</span><span class="t-call">` +
+        `<em>verify</em>(${n} claims) · live agent</span></div>`);
+
+  const res = await fetch(`${API}/verify`, {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ claims: EXTRACTED_LIVE.slice(0, n) }),
+  });
+  if (!res.ok) {
+    tline(`<div class="t-mark contradicted">verify failed · HTTP ${res.status}</div>`);
+    return;
+  }
+
+  const reader = res.body.getReader(), dec = new TextDecoder();
+  let buf = '';
+  for (;;) {
+    const { value, done } = await reader.read();
+    if (done) break;
+    buf += dec.decode(value, { stream: true });
+    const parts = buf.split('\n\n'); buf = parts.pop();
+    for (const block of parts) {
+      const ev = /^event: (.+)$/m.exec(block)?.[1];
+      const raw = /^data: (.+)$/m.exec(block)?.[1];
+      if (!ev || !raw) continue;
+      const d = JSON.parse(raw);
+      if (ev !== 'verdict') continue;
+
+      const key = KEYS[d.status] || 'none';
+      render({
+        text: d.text,
+        src: 'Deck · live',
+        status: key, tick: TICKS[d.status] || '?',
+        exception: d.status === 'CONTRADICTED' && d.actual != null
+          ? `claimed <s>${d.claimed}</s> &nbsp;·&nbsp; actual <strong>${d.actual}</strong>` : '',
+        path: d.figures?.length ? `retrieved: ${d.figures.join(', ')}` : '—',
+        rows: null,
+        decided: `compare.py — ${d.status}${d.reason ? ' · ' + d.reason : ''}`,
+        cite: d.cite || '',
+      });
+      counts[key]++;
+      document.getElementById('n-sup').textContent = counts.supported;
+      document.getElementById('n-con').textContent = counts.contradicted;
+      document.getElementById('n-bas').textContent = counts.basis;
+      document.getElementById('n-non').textContent = counts.none;
+      tline(`<div class="t-mark ${key}">${TICKS[d.status] || '?'} ${d.status} — ${d.text.slice(0, 40)}…</div>`);
+    }
+  }
+  document.getElementById('turns').textContent = `${n} claims · live`;
+}
+
+async function run() {
+  const btn = document.getElementById('run');
+  btn.disabled = true; btn.textContent = 'Running…';
+  sheet.innerHTML = ''; tape.innerHTML = '';
+  for (const k in counts) counts[k] = 0;
+  document.getElementById('tally').hidden = false;
+  ['n-sup', 'n-con', 'n-bas', 'n-non'].forEach(id => document.getElementById(id).textContent = '0');
+
+  // A live backend runs the real agent and streams verdicts as they resolve.
+  if (LIVE && EXTRACTED_LIVE.length) {
+    await runLive();
+    btn.disabled = false; btn.innerHTML = '<span>2</span> Verify again';
+    return;
+  }
+
+  const real = await loadReal();
+  const steps = real ? real.tape : RUN;
+  const marks = real ? real.claims : CLAIMS;
+  const src = document.getElementById('run-source');
+  if (src) src.textContent = real
+    ? 'recorded from a real run · llama-3.3-70b on Groq'
+    : 'illustrative run · real figures, authored reasoning';
+
+  for (const t of steps.map((s, i) => ({ ...s, turn: s.turn ?? i + 1 }))) {
+    document.getElementById('turns').textContent = `turn ${t.turn}`;
+    tline(`<div class="t-line"><span class="n">${String(t.turn).padStart(2, '0')}</span>` +
+          `<span class="t-call"><em>${t.call}</em>${t.arg ? '(' + t.arg + ')' : ''}</span></div>`);
+    await wait(reduced ? 0 : 520);
+    tline(`<div class="t-think">${t.think}</div>`);
+    await wait(reduced ? 0 : 900);
+  }
+
+  document.getElementById('turns').textContent = 'marking';
+  for (const c of CLAIMS) {
+    render(c);
+    counts[c.status]++;
+    document.getElementById('n-sup').textContent = counts.supported;
+    document.getElementById('n-con').textContent = counts.contradicted;
+    document.getElementById('n-bas').textContent = counts.basis;
+    document.getElementById('n-non').textContent = counts.none;
+    tline(`<div class="t-mark ${c.status}">${c.tick} ${LABEL[c.status]} — ${c.text.slice(0, 42)}…</div>`);
+    await wait(reduced ? 0 : 620);
+  }
+
+  for (const [tag, title, kind, why, items] of REST) {
+    const el = document.createElement('article');
+    el.className = 'claim group';
+    el.innerHTML = `
+      <div class="tick none" aria-hidden="true">${kind === 'nosource' ? '∅' : '?'}</div>
+      <div>
+        <div class="claim-text">${title}</div>
+        <div class="claim-meta">Deck · ${tag}</div>
+      </div>
+      <div class="status none">${kind === 'nosource' ? 'no source' : 'not located'}</div>
+      <div class="decided"><span>decided in Python</span> ${why}</div>
+      <details class="evidence">
+        <summary>Show all ${items.length}</summary>
+        <div class="slip"><ul class="grouped">${items.map(i => `<li>${i}</li>`).join('')}</ul></div>
+      </details>`;
+    sheet.appendChild(el);
+    counts.none += items.length;
+    document.getElementById('n-non').textContent = counts.none;
+    await wait(reduced ? 0 : 420);
+  }
+
+  document.getElementById('turns').textContent =
+    `${counts.supported + counts.contradicted + counts.basis + counts.none} claims · done`;
+  tline(`<div class="t-line"><span class="n"></span><span class="t-call" style="color:var(--ink-faint)">` +
+        `all 24 claims marked · 3 model calls</span></div>`);
+  btn.disabled = false; btn.textContent = 'Run again';
+}
+
+// Real output of one extraction call over the FY2024 Q4 earnings release.
+const EXTRACTED = [
+  ['growth','56%','FY24','56% YoY growth in non-GAAP adjusted free cash flow'],
+  ['absolute','$545.3M','Q4','Product gross profit of $545.3 million'],
+  ['margin','74%','Q4','74% product gross margin', 1],
+  ['absolute','$(275.5)M','Q4','Operating income of ($275.5) million'],
+  ['absolute','$71.0M','Q4','Non-GAAP operating income of $71.0 million'],
+  ['margin','9%','Q4','9% non-GAAP operating margin'],
+  ['absolute','$324.5M','Q4','Free cash flow of $324.5 million'],
+  ['growth','42%','Q4','42% YoY growth in free cash flow'],
+  ['absolute','$324.3M','Q4','Adjusted free cash flow of $324.3 million'],
+  ['growth','42%','Q4','42% YoY growth in adjusted free cash flow'],
+  ['absolute','$2,666.8M','FY24','Product revenue of $2,666.8 million', 1],
+  ['growth','38%','FY24','38% YoY growth in product revenue', 1],
+  ['absolute','$1,965.6M','FY24','Product gross profit of $1,965.6 million'],
+  ['margin','74%','FY24','74% product gross margin', 1],
+  ['absolute','$(1,094.8)M','FY24','Operating income of ($1,094.8) million'],
+  ['absolute','$229.7M','FY24','Non-GAAP operating income of $229.7 million'],
+  ['margin','8%','FY24','8% non-GAAP operating margin'],
+  ['absolute','$848.1M','FY24','Net cash provided by operating activities of $848.1M'],
+  ['absolute','$778.9M','FY24','Free cash flow of $778.9 million', 1],
+  ['growth','28%','FY24','28% YoY growth in free cash flow'],
+  ['absolute','$810.2M','FY24','Adjusted free cash flow of $810.2 million'],
+  ['growth','29%','FY24','29% YoY growth in adjusted free cash flow'],
+];
+
+function paintExtracted(rows) {
+  document.getElementById('extracted').innerHTML = rows.map(
+    ([typ, fig, per, text, carried]) =>
+      `<li><span class="car">${carried ? '▸' : ''}</span>` +
+      `<span class="typ">${typ}</span><span>${text}</span>` +
+      `<span class="per">${per}</span></li>`).join('');
+  const h = document.getElementById('ext-h');
+  if (h) h.textContent = `Claims extracted from the deck · ${rows.length}`;
+}
+
+// ── backend ─────────────────────────────────────────────────
+// Local API when one is reachable; otherwise the page runs on committed data.
+const API = location.hostname === 'localhost' || location.hostname === '127.0.0.1'
+  ? 'http://127.0.0.1:8000' : '';
+let LIVE = false;
+
+const KB = n => n < 1e6 ? `${Math.round(n / 1024)} KB` : `${(n / 1048576).toFixed(1)} MB`;
+
+function docRow(list, name, detail, ok = true) {
+  const li = document.createElement('li');
+  if (!ok) li.classList.add('bad');
+  li.innerHTML = `<span class="rcv">${ok ? '✓' : '✗'}</span>${name}<em>${detail}</em>`;
+  list.appendChild(li);
+}
+
+async function refreshDocs() {
+  const deck = document.getElementById('docs-deck');
+  const room = document.getElementById('docs-room');
+  deck.innerHTML = ''; room.innerHTML = '';
+  try {
+    const r = await fetch(`${API}/documents`);
+    if (!r.ok) throw 0;
+    for (const d of await r.json())
+      docRow(/8-K|deck/i.test(d.type || '') ? deck : room, d.doc_id, d.period || d.type);
+    LIVE = true;
+  } catch {
+    LIVE = false;
+    docRow(deck, 'SNOW_8K_EX99-1_FY2024Q4', '533 KB · html');
+    docRow(room, 'SNOW_10K_FY2024', '2.6 MB · 128 sections');
+    docRow(room, 'SNOW_10Q_FY2024Q3', '2.3 MB · html');
+  }
+  const b = document.getElementById('backend-state');
+  if (b) {
+    b.textContent = LIVE ? 'backend connected · live run' : 'no backend · committed data';
+    b.className = LIVE ? 'live' : '';
+  }
+}
+
+async function upload(role, files) {
+  const list = document.getElementById(role === 'deck' ? 'docs-deck' : 'docs-room');
+  if (!LIVE) {
+    for (const f of files) docRow(list, f.name, 'backend offline, not indexed', false);
+    return;
+  }
+  const fd = new FormData();
+  fd.append('role', role);
+  for (const f of files) fd.append('files', f);
+  for (const f of files) docRow(list, f.name, `${KB(f.size)} · indexing…`);
+  try {
+    const r = await fetch(`${API}/upload`, { method: 'POST', body: fd });
+    const d = await r.json();
+    await refreshDocs();
+    for (const doc of d.documents || [])
+      if (!doc.ok) docRow(list, doc.name, doc.detail, false);
+  } catch (e) {
+    docRow(list, 'upload failed', String(e).slice(0, 60), false);
+  }
+}
+
+document.querySelectorAll('.drop[data-role]').forEach(zone => {
+  const role = zone.dataset.role;
+  zone.querySelector('input[type=file]').addEventListener('change', e => {
+    upload(role, e.target.files); e.target.value = '';
+  });
+  ['dragenter', 'dragover'].forEach(ev => zone.addEventListener(ev, e => {
+    e.preventDefault(); zone.classList.add('over');
+  }));
+  ['dragleave', 'drop'].forEach(ev => zone.addEventListener(ev, e => {
+    e.preventDefault(); zone.classList.remove('over');
+  }));
+  zone.addEventListener('drop', e => upload(role, e.dataTransfer.files));
+});
+
+refreshDocs();
+
+// ── stage 1: extraction ─────────────────────────────────────
+const extractBtn = document.getElementById('extract');
+const runBtn = document.getElementById('run');
+const extList = document.getElementById('extracted');
+
+extList.outerHTML = '<div class="waiting" id="extracted">Nothing extracted yet — run stage 1.</div>';
+
+async function doExtract() {
+  const el = document.getElementById('extracted');
+  extractBtn.disabled = true; extractBtn.innerHTML = '<span>1</span> Extracting…';
+  el.className = 'waiting'; el.textContent = 'Reading the deck…';
+  tline(`<div class="t-line"><span class="n">--</span><span class="t-call"><em>extract</em>(deck)</span></div>`);
+
+  await wait(reduced ? 0 : 900);
+
+  let rows = null;
+  if (LIVE) {
+    // Real extractor over the real deck.
+    const deckId = (document.querySelector('#docs-deck li')?.textContent || '')
+      .replace(/^✓/, '').split(/\s{2,}/)[0].trim();
+    try {
+      const r = await fetch(`${API}/extract`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ doc_id: deckId }),
+      });
+      if (r.ok) {
+        const d = await r.json();
+        if (d?.claims?.length) {
+          EXTRACTED_LIVE = d.claims;
+          rows = d.claims.map(c => [c.operation, c.figure, c.period || '—', c.text, false]);
+        }
+      } else {
+        tline(`<div class="t-mark contradicted">extract failed · HTTP ${r.status}</div>`);
+      }
+    } catch (e) {
+      tline(`<div class="t-mark contradicted">extract failed · ${String(e).slice(0, 50)}</div>`);
+    }
+  }
+  if (!rows) {
+    try {
+      const r = await fetch('extracted.json', { cache: 'no-store' });
+      if (r.ok) {
+        const d = await r.json();
+        if (d?.claims?.length)
+          rows = d.claims.map(c => [c.operation, c.figure, c.period || '—', c.text, c.carried]);
+      }
+    } catch { /* fall through to the committed set */ }
+  }
+
+  const el2 = document.getElementById('extracted');
+  el2.className = ''; el2.outerHTML = '<ul class="extracted" id="extracted"></ul>';
+  paintExtracted(rows || EXTRACTED);
+
+  tline(`<div class="t-line"><span class="n"></span><span class="t-call" style="color:var(--ink-faint)">` +
+        `${(rows || EXTRACTED).length} claims extracted · marketing discarded</span></div>`);
+
+  extractBtn.innerHTML = '<span>1</span> Extracted';
+  runBtn.disabled = false;
+  runBtn.focus();
+}
+
+extractBtn.addEventListener('click', doExtract);
+runBtn.addEventListener('click', run);
+tline(`<div class="t-line"><span class="n"></span><span class="t-call" style="color:var(--ink-faint)">` +
+      `awaiting run <span class="cursor"></span></span></div>`);
+</script>

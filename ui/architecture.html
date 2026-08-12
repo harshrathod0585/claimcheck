@@ -1,0 +1,458 @@
+<!--
+THESIS: An architecture page that argues rather than illustrates. Every stage states
+what it costs and where the model is allowed to touch. It refuses the category default:
+a boxes-and-arrows diagram with a paragraph of adjectives under it.
+
+OWN-WORLD: Same columnar accounting pad as the workpaper. Ruled ground, manila panels,
+tabular figures, vermilion for the Python boundary, audit blue for model calls.
+
+STORY: The reader understands that retrieval navigates structure instead of chopping it,
+that the model only locates and reads, and that every verdict is decided in Python.
+
+FIRST VIEWPORT: The four stages as a ruled ledger across the page, each with its cost
+line. The token arithmetic sits immediately under it, because that is the argument.
+
+FORM: Audit workpaper, continuous with the demo page.
+-->
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ClaimCheck — architecture</title>
+<style>
+  :root {
+    --pad: #cfdcc8; --pad-2: #c3d2bb; --rule: #a8bd9f; --rule-soft: #b7c9af;
+    --manila: #e6d9bb; --manila-2: #dccdaa;
+    --ink: #1b2317; --ink-soft: #4a5542; --ink-faint: #6f7a66;
+    --vermilion: #a8342a; --blue: #24557f; --ochre: #8a6510; --graphite: #5c6356;
+    --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+    --sans: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  }
+  :root:not([data-theme="light"]) {
+    @media (prefers-color-scheme: dark) {
+      --pad: #161c13; --pad-2: #1b2218; --rule: #2c3927; --rule-soft: #232e1f;
+      --manila: #22261c; --manila-2: #1c2017;
+      --ink: #dfe6d8; --ink-soft: #a9b4a1; --ink-faint: #7c8775;
+      --vermilion: #e0705f; --blue: #78aada; --ochre: #d6a53c; --graphite: #8d9785;
+    }
+  }
+  :root[data-theme="dark"] {
+    --pad: #161c13; --pad-2: #1b2218; --rule: #2c3927; --rule-soft: #232e1f;
+    --manila: #22261c; --manila-2: #1c2017;
+    --ink: #dfe6d8; --ink-soft: #a9b4a1; --ink-faint: #7c8775;
+    --vermilion: #e0705f; --blue: #78aada; --ochre: #d6a53c; --graphite: #8d9785;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; color: var(--ink); font-family: var(--sans);
+    font-size: 15px; line-height: 28px;
+    background-color: var(--pad);
+    background-image: repeating-linear-gradient(to bottom, transparent 0 27px, var(--rule-soft) 27px 28px);
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 1180px; margin: 0 auto; padding: 0 20px 96px; }
+  a { color: var(--blue); }
+
+  header { display: flex; align-items: baseline; gap: 18px; flex-wrap: wrap;
+    padding: 40px 0 12px; border-bottom: 2px solid var(--ink); margin-bottom: 2px; }
+  h1 { font-family: var(--mono); font-size: 19px; line-height: 28px; letter-spacing: .14em;
+    text-transform: uppercase; margin: 0; font-weight: 600; }
+  .ref { font-family: var(--mono); font-size: 11px; letter-spacing: .1em;
+    color: var(--ink-faint); text-transform: uppercase; }
+  .spacer { flex: 1 1 40px; }
+  .back { font-family: var(--mono); font-size: 11px; letter-spacing: .1em;
+    text-transform: uppercase; text-decoration: none; border-bottom: 1px solid var(--blue); }
+  .underrule { border-bottom: 1px solid var(--ink); margin-bottom: 26px; }
+
+  h2 { font-family: var(--mono); font-size: 11px; letter-spacing: .12em;
+    text-transform: uppercase; color: var(--ink-faint); font-weight: 400;
+    margin: 40px 0 12px; padding-bottom: 6px; border-bottom: 1px solid var(--ink); }
+  p { max-width: 76ch; color: var(--ink-soft); }
+  p strong, li strong { color: var(--ink); font-weight: 600; }
+  code { font-family: var(--mono); font-size: 12.5px; background: var(--manila); padding: 0 3px; }
+
+  /* data-flow diagram */
+  .figscroll { overflow-x: auto; margin: 10px 0 6px; }
+  svg.flow { display: block; width: 100%; min-width: 900px; height: auto; }
+  svg.flow .lane line { stroke: var(--rule); stroke-width: 1; }
+  svg.flow .lane-label text { font-family: var(--mono); font-size: 10px;
+    letter-spacing: .14em; fill: var(--ink-faint); }
+  svg.flow .box rect { fill: var(--manila); stroke: var(--ink-soft); stroke-width: 1; }
+  svg.flow .box.model rect { stroke: var(--blue); stroke-width: 1.5; }
+  svg.flow .box.py rect { stroke: var(--vermilion); stroke-width: 1.5; }
+  svg.flow .doc rect { fill: none; stroke: var(--ink-faint); stroke-dasharray: 3 3; }
+  svg.flow .doc text { font-family: var(--mono); font-size: 11px; fill: var(--ink-soft);
+    text-anchor: middle; }
+  svg.flow .store rect { fill: var(--pad-2); stroke: var(--ink-soft); }
+  svg.flow .tool rect { fill: none; stroke: var(--blue); stroke-dasharray: 2 3; }
+  svg.flow .tool text { font-family: var(--mono); font-size: 11.5px; fill: var(--blue);
+    text-anchor: middle; }
+  svg.flow text.t { font-family: var(--mono); font-size: 12px; letter-spacing: .1em;
+    fill: var(--ink); text-anchor: middle; font-weight: 600; }
+  svg.flow text.s { font-family: var(--mono); font-size: 10.5px; fill: var(--ink-soft);
+    text-anchor: middle; }
+  svg.flow .link { fill: none; stroke: var(--ink-faint); stroke-width: 1.2; }
+  svg.flow .link.v { stroke: var(--vermilion); }
+  svg.flow .tag { font-family: var(--mono); font-size: 10px; letter-spacing: .08em;
+    fill: var(--ink-faint); }
+  svg.flow .tag.model-t { fill: var(--blue); }
+  svg.flow .verdict text { font-family: var(--mono); font-size: 11.5px; fill: var(--ink-soft); }
+  .figcap { font-size: 13px; line-height: 22px; color: var(--ink-faint);
+    max-width: 78ch; margin: 4px 0 0; }
+
+  /* stage ledger */
+  ol.stages { list-style: none; margin: 0; padding: 0;
+    display: grid; grid-template-columns: repeat(4, 1fr); }
+  @media (max-width: 900px) { ol.stages { grid-template-columns: repeat(2, 1fr); } }
+  @media (max-width: 560px) { ol.stages { grid-template-columns: 1fr; } }
+  ol.stages li { padding: 14px 18px 14px 0; margin-right: 18px; border-right: 1px solid var(--rule); }
+  ol.stages li:last-child { border-right: none; }
+  .sn { font-family: var(--mono); font-size: 11px; color: var(--ink-faint); letter-spacing: .1em; }
+  ol.stages b { display: block; font-family: var(--mono); font-size: 14px; letter-spacing: .1em;
+    text-transform: uppercase; margin: 2px 0 8px; }
+  ol.stages p { margin: 0 0 10px; font-size: 13.5px; line-height: 23px; }
+  .sc { font-family: var(--mono); font-size: 10.5px; letter-spacing: .09em; text-transform: uppercase;
+    color: var(--graphite); border-top: 1px solid var(--rule); padding-top: 5px; display: block; }
+  .sc.model { color: var(--blue); } .sc.py { color: var(--vermilion); }
+
+  pre { font-family: var(--mono); font-size: 12.5px; line-height: 21px;
+    background: var(--manila); border: 1px solid var(--manila-2);
+    padding: 16px 18px; overflow-x: auto; margin: 14px 0; color: var(--ink); }
+  pre b { color: var(--vermilion); font-weight: 600; }
+  pre i { color: var(--blue); font-style: normal; }
+  pre u { color: var(--graphite); text-decoration: none; }
+
+  table { width: 100%; border-collapse: collapse; font-size: 13.5px; margin: 14px 0; }
+  th { text-align: left; font-family: var(--mono); font-size: 10.5px; letter-spacing: .09em;
+    text-transform: uppercase; color: var(--ink-faint); font-weight: 400;
+    border-bottom: 1px solid var(--ink); padding: 4px 14px 4px 0; }
+  td { padding: 5px 14px 5px 0; border-bottom: 1px solid var(--rule);
+    vertical-align: top; color: var(--ink-soft); }
+  td:first-child { color: var(--ink); font-family: var(--mono); font-size: 12.5px; white-space: nowrap; }
+  td.num { font-family: var(--mono); font-variant-numeric: tabular-nums; text-align: right; }
+
+  /* A ruled note in the margin of a workpaper, not a tinted card with a bar. */
+  .callout { border-top: 1px solid var(--rule); border-bottom: 1px solid var(--rule);
+    padding: 12px 0; margin: 20px 0; max-width: 78ch; }
+  .callout.key { border-top-width: 2px; border-top-color: var(--vermilion); }
+  .callout p { max-width: none; }
+
+  ol.rules { counter-reset: r; list-style: none; padding: 0; margin: 14px 0; max-width: 76ch; }
+  ol.rules li { counter-increment: r; padding: 5px 0 5px 40px; position: relative;
+    border-bottom: 1px solid var(--rule); color: var(--ink-soft); font-size: 14px; }
+  ol.rules li::before { content: counter(r); position: absolute; left: 0;
+    font-family: var(--mono); font-size: 11px; color: var(--ink-faint); }
+  ol.rules b { font-family: var(--mono); font-size: 12.5px; }
+  .v-sup { color: var(--blue); } .v-con { color: var(--vermilion); }
+  .v-bas { color: var(--ochre); } .v-non { color: var(--graphite); }
+
+  footer { margin-top: 48px; padding-top: 14px; border-top: 1px solid var(--ink);
+    font-family: var(--mono); font-size: 11px; line-height: 20px; color: var(--ink-faint); }
+</style>
+
+<div class="wrap">
+  <header>
+    <h1>ClaimCheck</h1>
+    <span class="ref">W/P REF A-1 &nbsp;·&nbsp; Architecture</span>
+    <span class="spacer"></span>
+    <a class="back" href="/">← Verification sheet</a>
+  </header>
+  <div class="underrule"></div>
+
+  <p style="max-width:78ch">
+    Verify every factual claim in an investor deck against a data room of SEC filings, and
+    cite the exact source for each verdict. Two things make that hard, and both are unusual:
+    <strong>the numbers that matter live inside tables</strong>, and <strong>most discrepancies
+    are not lies</strong> — they are the same quantity measured on a different accounting basis.
+  </p>
+
+  <h2>Data flow</h2>
+  <div class="figscroll">
+  <svg class="flow" viewBox="0 0 1080 620" role="img"
+       aria-label="Data flow: filings and deck are indexed into section trees; the deck is extracted into claims; an agent investigates the trees through four tools; Python decides each verdict.">
+    <defs>
+      <marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+        <path d="M0,0 L10,5 L0,10 z" fill="var(--ink-faint)"/>
+      </marker>
+      <marker id="ar-v" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+        <path d="M0,0 L10,5 L0,10 z" fill="var(--vermilion)"/>
+      </marker>
+    </defs>
+
+    <!-- lanes -->
+    <g class="lane">
+      <line x1="0" y1="96"  x2="1080" y2="96"/>
+      <line x1="0" y1="232" x2="1080" y2="232"/>
+      <line x1="0" y1="392" x2="1080" y2="392"/>
+      <line x1="0" y1="524" x2="1080" y2="524"/>
+    </g>
+    <g class="lane-label">
+      <text x="4" y="26">01 · INDEX</text>
+      <text x="4" y="122">02 · EXTRACT</text>
+      <text x="4" y="258">03 · INVESTIGATE</text>
+      <text x="4" y="418">04 · DECIDE — no model below this line</text>
+    </g>
+
+    <!-- sources -->
+    <g class="doc">
+      <rect x="96" y="14" width="150" height="30" rx="1"/>
+      <text x="171" y="34">deck · 8-K EX-99.1</text>
+      <rect x="96" y="50" width="150" height="30" rx="1"/>
+      <text x="171" y="70">10-K FY2024</text>
+      <rect x="266" y="50" width="150" height="30" rx="1"/>
+      <text x="341" y="70">10-Q Q3 FY2024</text>
+    </g>
+
+    <!-- loader + tree -->
+    <g class="box">
+      <rect x="470" y="14" width="150" height="66"/>
+      <text class="t" x="545" y="38">LOADER</text>
+      <text class="s" x="545" y="56">html · md · pdf</text>
+      <text class="s" x="545" y="70">→ markdown, tables kept</text>
+    </g>
+    <g class="box">
+      <rect x="672" y="14" width="180" height="66"/>
+      <text class="t" x="762" y="38">TREE BUILDER</text>
+      <text class="s" x="762" y="56">128 nodes · titles + spans</text>
+      <text class="s" x="762" y="70">no text · cached by sha256</text>
+    </g>
+    <g class="store">
+      <rect x="900" y="14" width="140" height="66"/>
+      <text class="t" x="970" y="40">SECTION TREES</text>
+      <text class="s" x="970" y="60">pointers, not content</text>
+    </g>
+
+    <path class="link" d="M246,30 H460" marker-end="url(#ar)"/>
+    <path class="link" d="M246,65 H256 V88 H442 V44 H460" marker-end="url(#ar)"/>
+    <path class="link" d="M341,80 V88" marker-end="url(#ar)"/>
+    <path class="link" d="M620,47 H662" marker-end="url(#ar)"/>
+    <path class="link" d="M852,47 H890" marker-end="url(#ar)"/>
+
+    <!-- extract -->
+    <g class="box model">
+      <rect x="96" y="140" width="200" height="66"/>
+      <text class="t" x="196" y="164">EXTRACT</text>
+      <text class="s" x="196" y="182">whole deck, one call</text>
+      <text class="s" x="196" y="196">marketing discarded here</text>
+    </g>
+    <g class="box">
+      <rect x="360" y="140" width="170" height="66"/>
+      <text class="t" x="445" y="164">22 CLAIMS</text>
+      <text class="s" x="445" y="182">typed · period inherited</text>
+      <text class="s" x="445" y="196">chunked ~10 per group</text>
+    </g>
+    <path class="link" d="M171,80 V132 H190" marker-end="url(#ar)"/>
+    <path class="link" d="M296,173 H350" marker-end="url(#ar)"/>
+    <text class="tag model-t" x="306" y="130">1 model call</text>
+
+    <!-- agent -->
+    <g class="box model">
+      <rect x="96" y="286" width="230" height="86"/>
+      <text class="t" x="211" y="312">VERIFICATION AGENT</text>
+      <text class="s" x="211" y="332">claims = the query</text>
+      <text class="s" x="211" y="348">corpus = the environment</text>
+      <text class="s" x="211" y="364">≤ 8 turns · fails loudly</text>
+    </g>
+    <path class="link" d="M445,206 V262 H240 V278" marker-end="url(#ar)"/>
+
+    <g class="tool">
+      <rect x="396" y="262" width="230" height="26"/><text x="511" y="279">list_documents()</text>
+      <rect x="396" y="292" width="230" height="26"/><text x="511" y="309">search(query) · BM25</text>
+      <rect x="396" y="322" width="230" height="26"/><text x="511" y="339">get_structure(doc) · no text</text>
+      <rect x="396" y="352" width="230" height="26"/><text x="511" y="369">get_content(doc, [nodes])</text>
+    </g>
+    <path class="link" d="M326,320 H386" marker-end="url(#ar)"/>
+    <path class="link" d="M386,340 H326" marker-end="url(#ar)"/>
+    <path class="link" d="M626,300 H700 V80 H970" marker-end="url(#ar)"/>
+
+    <g class="box">
+      <rect x="700" y="286" width="230" height="86"/>
+      <text class="t" x="815" y="312">EVIDENCE</text>
+      <text class="s" x="815" y="332">figures as written</text>
+      <text class="s" x="815" y="348">node ids + citation URL</text>
+      <text class="s" x="815" y="364">never a verdict</text>
+    </g>
+    <path class="link" d="M626,365 H690" marker-end="url(#ar)"/>
+    <text class="tag" x="646" y="252">128 summaries read · ~2 sections opened</text>
+
+    <!-- decide -->
+    <g class="box py">
+      <rect x="96" y="440" width="200" height="66"/>
+      <text class="t" x="196" y="464">NORMALIZE</text>
+      <text class="s" x="196" y="482">"$4.2M" → value, unit,</text>
+      <text class="s" x="196" y="496">scale, period, basis</text>
+    </g>
+    <g class="box py">
+      <rect x="360" y="440" width="230" height="66"/>
+      <text class="t" x="475" y="464">COMPARE</text>
+      <text class="s" x="475" y="482">arithmetic · tolerance</text>
+      <text class="s" x="475" y="496">period · basis · 73 tests</text>
+    </g>
+    <path class="link v" d="M815,372 V420 H196 V432" marker-end="url(#ar-v)"/>
+    <path class="link v" d="M296,473 H350" marker-end="url(#ar-v)"/>
+
+    <g class="verdict">
+      <text x="660" y="462">✓ SUPPORTED</text>
+      <text x="660" y="482">✗ CONTRADICTED</text>
+      <text x="810" y="462">≠ BASIS_MISMATCH</text>
+      <text x="810" y="482">? NO_EVIDENCE</text>
+      <text x="810" y="502">∅ NO_SOURCE</text>
+    </g>
+    <path class="link v" d="M590,473 H648" marker-end="url(#ar-v)"/>
+
+    <g class="box">
+      <rect x="360" y="556" width="230" height="46"/>
+      <text class="t" x="475" y="578">SSE STREAM → SHEET</text>
+      <text class="s" x="475" y="594">every claim carries a verdict</text>
+    </g>
+    <path class="link" d="M475,506 V548" marker-end="url(#ar)"/>
+  </svg>
+  </div>
+  <p class="figcap">
+    Blue boxes are the only places a model runs. Everything below the fourth rule is
+    deterministic Python — which is why an open-weight model is sufficient, and why the
+    verdict layer is testable with no API key.
+  </p>
+
+  <h2>The pipeline</h2>
+  <ol class="stages">
+    <li>
+      <span class="sn">01</span><b>Index</b>
+      <p>Each filing converts to Markdown — tables kept as grids, heading <code>id</code>s kept for
+      citation — then becomes a tree of section nodes holding titles and spans but <strong>no
+      text</strong>. Cached by <code>sha256</code> of the file, so it is built once ever.</p>
+      <span class="sc">deterministic · cached</span>
+    </li>
+    <li>
+      <span class="sn">02</span><b>Extract</b>
+      <p>The deck goes in whole — it is short enough to read — and returns typed claims with
+      periods inherited from section headings. Superlatives, projections and team claims are
+      discarded here and never enter the pipeline.</p>
+      <span class="sc model">1 model call</span>
+    </li>
+    <li>
+      <span class="sn">03</span><b>Investigate</b>
+      <p>All claims become one query; the corpus is the environment. The agent reads every
+      section <em>summary</em> at once, then opens only the nodes it needs. Claims sharing
+      evidence share the fetch.</p>
+      <span class="sc model">3 tools · ≤8 turns</span>
+    </li>
+    <li>
+      <span class="sn">04</span><b>Decide</b>
+      <p>The agent returns figures and node references — <strong>never a verdict</strong>. Python
+      normalises units, scales and periods, computes every rate and margin, applies the rounding
+      band, then assigns a verdict.</p>
+      <span class="sc py">73 tests · no API key</span>
+    </li>
+  </ol>
+
+  <h2>Why not chunk and embed</h2>
+  <p>
+    This is the whole argument, and it is visible in four lines. Snowflake's FY2024 income
+    statement, as it reaches the model under each approach:
+  </p>
+  <pre>
+<u>── structure-navigating retrieval ──────────────────────────</u>
+
+| (in thousands)  |   FY2024  |   FY2023  |
+| Total revenue   | <b>2,806,489</b> | <b>2,065,659</b> |
+| Cost of revenue |   898,558 |   717,540 |
+
+<u>── chunk at 512 tokens, embed, retrieve top-k ─────────────</u>
+
+chunk 41  "... Total revenue  Cost of revenue  Gross profit ..."   <u>← labels, no numbers</u>
+chunk 42  "... 2,806,489  2,065,659  898,558  717,540 ..."         <u>← numbers, no labels, no years</u></pre>
+  <div class="callout key">
+    <p style="margin:0">
+      Retrieve chunk 42 and the model sees digits with no idea which is revenue and which is
+      FY2023. <strong>It will still answer, confidently.</strong> That is the failure mode —
+      not silence, but a wrong number that looks right. Nothing here is chunked, so the
+      question never arises.
+    </p>
+  </div>
+
+  <h2>What the agent can do</h2>
+  <table>
+    <thead><tr><th>Tool</th><th>Returns</th><th>Why it exists</th></tr></thead>
+    <tbody>
+      <tr><td>list_documents()</td><td>doc ids, types, periods covered</td>
+        <td>Establishes whether any document covers the claim's period at all — the difference between "looked and found nothing" and "there was nothing to look in".</td></tr>
+      <tr><td>get_structure(doc)</td><td>the full tree — titles, summaries, addresses, <strong>no text</strong></td>
+        <td>Small enough to reason over whole, so the agent considers every section before opening one.</td></tr>
+      <tr><td>get_content(doc, [ids])</td><td>markdown with tables intact, plus a resolved citation URL</td>
+        <td>Batched — one call fetches every node selected. The citation travels with the content.</td></tr>
+      <tr><td>search(query)</td><td>BM25 candidates across the corpus</td>
+        <td>Entity claims have no section to navigate to. Keyword matching beats embeddings on exact proper nouns.</td></tr>
+    </tbody>
+  </table>
+
+  <h2>The token arithmetic</h2>
+  <p>
+    A 200-page filing indexes to 128 nodes. The agent reads all 128 <em>descriptions</em> and
+    opens two or three <em>sections</em>. That ratio is the economics of the whole design.
+  </p>
+  <table>
+    <thead><tr><th>Per verification run</th><th class="num">Naive, per claim</th><th class="num">This design</th></tr></thead>
+    <tbody>
+      <tr><td>Extract claims from deck</td><td class="num">22</td><td class="num">1</td></tr>
+      <tr><td>Locate evidence</td><td class="num">44</td><td class="num">1</td></tr>
+      <tr><td>Read sections</td><td class="num">44</td><td class="num">~8</td></tr>
+      <tr><td>Compute verdicts</td><td class="num">22</td><td class="num">0 · Python</td></tr>
+      <tr><td><strong>Total model calls</strong></td><td class="num"><strong>132</strong></td><td class="num"><strong>~10</strong></td></tr>
+    </tbody>
+  </table>
+  <p>
+    Node summaries cost model calls once per document and are then cached forever against the
+    file's content hash, so a re-run over an unchanged data room pays nothing for indexing.
+  </p>
+
+  <h2>How a verdict is decided</h2>
+  <p>
+    No model, no prompt — an ordered function. Order matters: unit, period and scale are checked
+    <em>before</em> the numeric band, or <code>$4.2M</code> and <code>$4.2B</code> compare equal
+    and a thousand-fold error slips through.
+  </p>
+  <ol class="rules">
+    <li>No document covers the claim's period → <b class="v-non">NO_SOURCE</b></li>
+    <li>Nothing was found → <b class="v-non">NO_EVIDENCE</b></li>
+    <li>Compute the expected value in Python — absolute, <code>(a−b)/b</code>, or <code>a/b</code></li>
+    <li>Agrees within the rounding band → <b class="v-sup">SUPPORTED</b></li>
+    <li>Matches a <em>different</em> accounting basis → <b class="v-bas">BASIS_MISMATCH</b></li>
+    <li>Otherwise → <b class="v-con">CONTRADICTED</b></li>
+  </ol>
+  <div class="callout">
+    <p style="margin:0">
+      <strong>Rule 5 is the one worth arguing about.</strong> A deck reporting ARR against a
+      filing reporting GAAP revenue is not lying — it is measuring differently. Calling that a
+      contradiction is the naive failure, and the fastest way for an analyst to stop trusting the
+      tool. It is detected by running the same tolerance check against the other bases present in
+      the evidence: if the claimed figure matches <em>some</em> correct number, they measured
+      differently rather than lied.
+    </p>
+  </div>
+
+  <h2>Where this breaks at scale</h2>
+  <table>
+    <thead><tr><th>Ceiling</th><th>What happens</th><th>Where it changes</th></tr></thead>
+    <tbody>
+      <tr><td>10,000 documents</td><td>The corpus index no longer fits in one prompt, so document selection has to become a retrieval problem of its own.</td><td><code>list_documents</code></td></tr>
+      <tr><td>Tree too large</td><td>Above roughly 500 nodes, all-summaries-at-once stops fitting and selection must descend level by level — losing the ability to pick two nodes in different Items, which is what basis detection depends on.</td><td><code>get_structure</code></td></tr>
+      <tr><td>Cross-document entities</td><td>"Acme Corp" and "Acme Analytics Inc." are not resolved to the same entity. BM25 matches strings, not companies.</td><td><code>search</code></td></tr>
+      <tr><td>Partial edits</td><td>One changed page rebuilds the whole document tree; the cache key is the file hash, not the section.</td><td>cache key</td></tr>
+      <tr><td>Single-node cache</td><td>Tree cache and run state are one process each.</td><td><code>cache.py</code> · <code>state.py</code></td></tr>
+      <tr><td>Agent turns</td><td>Bounded at 8, and a group that exceeds it fails loudly rather than costing unbounded money. The bound is a guess, not a measurement.</td><td><code>MAX_TURNS</code></td></tr>
+      <tr><td>Document formats</td><td>Text filings only. Scanned pages, image-only charts and spreadsheets yield nothing, and slides whose figures live in chart images are counted and reported rather than silently skipped.</td><td><code>loader.py</code></td></tr>
+    </tbody>
+  </table>
+
+  <h2>Stack</h2>
+  <p>
+    Python · FastAPI · SSE · <code>rank_bm25</code> · Redis for the tree cache · MongoDB for run
+    state. Models are open-weight only, reached over an OpenAI-compatible endpoint, so the
+    provider is one environment variable — Groq, OpenRouter, vLLM or a local Ollama all work
+    unchanged. No OpenAI, no Anthropic.
+  </p>
+
+  <footer>
+    The model located and read. Python decided.<br>
+    Figures on this page are from Snowflake Inc.'s FY2024 Form 10-K, filed 26 March 2024.
+  </footer>
+</div>

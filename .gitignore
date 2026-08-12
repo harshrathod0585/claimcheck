@@ -1,0 +1,11 @@
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+*.egg-info/
+.pytest_cache/
+.env
+.DS_Store
+
+# corpus/, trees/, and the committed sample run are DELIBERATELY tracked —
+# the repo must run offline, with no API key. Do not add them here.
