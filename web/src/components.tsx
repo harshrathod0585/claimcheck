@@ -446,25 +446,34 @@ export function Tape({ lines }: { lines: TapeLine[] }) {
         {lines.length === 0 ? (
           <div className="t-line t-empty">
             <Clock size={12} className="icon-faint" />
-            <span>Waiting for extraction or verification run...</span>
+            <span>Waiting for verification run...</span>
           </div>
         ) : (
           lines.map(l => (
-            <div key={l.id} className="t-line">
-              <span className="n">{l.turn ?? '·'}</span>
-
-              {l.call && (
-                <span className="t-call">
-                  <em>{l.call}</em> {l.args && <span>({l.args})</span>}
-                </span>
+            <div key={l.id} className="tape-step-block">
+              {l.turn !== undefined && (
+                <div className="tape-step-num">
+                  {String(l.turn).padStart(2, '0')}
+                </div>
               )}
 
-              {l.think && <div className="t-think">"{l.think}"</div>}
+              {l.call && (
+                <div className="tape-call-line">
+                  <code>{l.call}</code>
+                  {l.args && <span>({l.args})</span>}
+                </div>
+              )}
+
+              {l.think && <div className="tape-think-text">{l.think}</div>}
 
               {l.mark && (
-                <span className={`t-mark ${l.tone ? TONE[l.tone as Status] || l.tone : ''}`}>
+                <div className={`tape-mark-line ${l.tone ? TONE[l.tone as Status] || l.tone : ''}`}>
+                  {l.tone === 'SUPPORTED' || l.tone === 'supported' ? '✓ traced — ' :
+                   l.tone === 'CONTRADICTED' || l.tone === 'contradicted' ? '✗ exception — ' :
+                   l.tone === 'BASIS_MISMATCH' || l.tone === 'basis' ? '≠ basis differs — ' :
+                   l.tone === 'NO_EVIDENCE' || l.tone === 'NO_SOURCE' || l.tone === 'none' ? '? not located — ' : ''}
                   {l.mark}
-                </span>
+                </div>
               )}
 
               {l.ticking && <Elapsed from={l.ticking} />}

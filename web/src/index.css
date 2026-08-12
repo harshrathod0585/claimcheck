@@ -459,27 +459,57 @@ a.src:hover { border-color: var(--blue); }
 .src-local-icon { color: var(--blue); flex: none; }
 .nocite { font: 11px var(--mono); color: var(--graphite); margin-top: 10px; }
 
-/* ── Agent Tape ───────────────────────────────────────────── */
-.tape { position: sticky; top: 20px; }
+/* ── Agent Tape (User's Simple & Beautiful Audit Log) ─────── */
+.tape {
+  position: sticky; top: 20px;
+  background: var(--manila); border: 1px solid var(--manila-2);
+  box-shadow: 2px 2px 0 var(--sheet-sh); padding: 16px; border-radius: 4px;
+}
+
 .tape-head {
-  font: 11px var(--mono); letter-spacing: 0.1em; text-transform: uppercase;
-  color: var(--ink-faint); border-bottom: 1px solid var(--ink);
-  padding-bottom: 6px; margin-bottom: 10px;
-  display: flex; justify-content: space-between; align-items: baseline;
+  font: 600 11px var(--mono); letter-spacing: 0.1em; text-transform: uppercase;
+  color: var(--ink-soft); border-bottom: 1px solid var(--ink);
+  padding-bottom: 8px; margin-bottom: 14px;
+  display: flex; justify-content: space-between; align-items: center;
 }
 .tape-title { display: flex; align-items: center; gap: 6px; }
-.live-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--blue); animation: pulse-dot 1.5s infinite; }
 
 .tape-body {
-  font: 12px/22px var(--mono); max-height: 62vh; overflow-y: auto; padding-right: 10px;
+  font: 12.5px/22px var(--mono); max-height: 65vh; overflow-y: auto; padding-right: 6px;
   scrollbar-width: thin; scrollbar-color: var(--rule) transparent;
+  display: flex; flex-direction: column; gap: 12px;
 }
-.t-line { display: flex; gap: 9px; padding: 2px 0; }
-.t-empty { color: var(--ink-faint); display: flex; align-items: center; gap: 6px; padding: 10px 0; }
-.t-line .n { color: var(--ink-faint); min-width: 20px; }
-.t-call em { font-style: normal; color: var(--blue); }
-.t-think { color: var(--ink-soft); font: italic 13px/22px var(--sans); padding: 6px 0 6px 29px; }
-.t-mark { padding-left: 29px; letter-spacing: 0.08em; text-transform: uppercase; font-size: 11px; }
+
+.tape-step-block {
+  display: flex; flex-direction: column; gap: 3px;
+  border-bottom: 1px dotted var(--rule); padding-bottom: 10px;
+}
+.tape-step-block:last-child { border-bottom: none; padding-bottom: 0; }
+
+.tape-step-num {
+  font: 700 14px/1 var(--mono); color: var(--blue); letter-spacing: 0.05em; margin-bottom: 2px;
+}
+
+.tape-call-line {
+  font: 600 12.5px/1.4 var(--mono); color: var(--ink);
+}
+.tape-call-line code {
+  color: var(--blue); font-weight: 700; background: rgba(28, 82, 126, 0.08);
+  padding: 1px 5px; border-radius: 3px;
+}
+
+.tape-think-text {
+  font: 12px/20px var(--sans); color: var(--ink-soft); font-style: normal;
+  padding-left: 2px; margin: 2px 0 4px;
+}
+
+.tape-mark-line {
+  font: 12px/20px var(--mono); color: var(--ink);
+}
+.tape-mark-line.supported { color: var(--blue); font-weight: 600; }
+.tape-mark-line.contradicted { color: var(--vermilion); font-weight: 600; }
+.tape-mark-line.basis { color: var(--ochre); font-weight: 600; }
+.tape-mark-line.none { color: var(--graphite); }
 
 .secs-badge {
   display: inline-flex; align-items: center; gap: 4px;
