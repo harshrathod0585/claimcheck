@@ -15,7 +15,20 @@ from .llm import chat
 from .models import Claim, Evidence, Quantity
 from .normalize import parse_period, parse_quantity
 
-MAX_TURNS = 8
+# Turns needed grows with how many distinct sections the batch requires, not
+# with the claim count itself: claims sharing an income statement share a
+# fetch. Three orienting turns plus roughly one fetch per two claims, floored
+# so a single claim still gets room to recover from a wrong first guess.
+BASE_TURNS = 6
+TURNS_PER_CLAIM = 0.5
+MAX_TURNS_CEILING = 30
+
+
+def turn_budget(n_claims: int) -> int:
+    return min(MAX_TURNS_CEILING, BASE_TURNS + int(n_claims * TURNS_PER_CLAIM))
+
+
+MAX_TURNS = BASE_TURNS  # back-compat for callers that import it directly
 
 TOOLS = [
     {"type": "function", "function": {
@@ -33,6 +46,11 @@ TOOLS = [
 ]
 
 SYSTEM = """You verify claims against financial filings.
+
+The deck is the claim, not the proof. Never cite a document whose role is
+"assertion" as evidence for its own claims: quoting the deck back at itself
+proves nothing. Evidence must come from a document whose role is "evidence".
+If no evidence document covers the claim's period, the verdict is NO_SOURCE.
 
 Method:
 1. list_documents() to see what exists and which periods they cover.
@@ -132,11 +150,52 @@ def _grounded(raw: str, rows: list[dict]) -> bool:
     """
     if not raw or not rows:
         return False
-    digits = re.sub(r"[^\d]", "", raw)
-    if not digits:
+    haystack = _digits(" ".join(r.get("content", "") for r in rows))
+    return any(d and d in haystack for d in _forms(raw))
+
+
+def _digits(text: str) -> str:
+    return re.sub(r"[^\d]", "", text)
+
+
+def _norm(text: str) -> str:
+    """Case-folded, whitespace-collapsed, punctuation-stripped."""
+    return re.sub(r"[^a-z0-9 ]", " ", (text or "").lower())
+
+
+def quote_grounded(quote: str, rows: list[dict], min_words: int = 3) -> bool:
+    """Is this quoted text actually in what the agent read?
+
+    Numeric grounding covers figures, but a claim can be about an entity, a
+    date, a segment or a customer name — no digits to check. Those need the
+    same guarantee: a fabricated customer must not become evidence merely
+    because nothing numeric was there to contradict it.
+
+    Matched on a normalised word sequence, since the model reflows whitespace
+    and punctuation when it quotes. Short quotes are refused rather than
+    accepted: two common words match almost any filing by accident.
+    """
+    words = _norm(quote).split()
+    if len(words) < min_words:
         return False
-    haystack = re.sub(r"[^\d]", "", " ".join(r.get("content", "") for r in rows))
-    return digits in haystack
+    haystack = " ".join(_norm(r.get("content", "")).split())
+    return " ".join(words) in haystack
+
+
+def _forms(raw: str) -> list[str]:
+    """Digit forms a figure might legitimately take.
+
+    Rejecting a correct figure is the quieter half of this check going wrong:
+    "54,284.00" and "54,284" are the same number, but naive digit-stripping
+    makes them 5428400 and 54284, so the evidence would be discarded and the
+    claim would come back NO_EVIDENCE with nothing to explain it.
+    """
+    forms = [_digits(raw)]
+    trimmed = re.sub(r"\.0+\b", "", raw)          # 54,284.00 -> 54,284
+    forms.append(_digits(trimmed))
+    if "." in raw:
+        forms.append(_digits(raw.split(".", 1)[0]))  # fall back to the integer part
+    return forms
 
 
 def _trim(node: dict, depth: int) -> dict:
@@ -163,14 +222,15 @@ def _run_tool(name: str, args: dict) -> str:
     return json.dumps({"error": f"unknown tool {name}"})
 
 
-def investigate(claims: list[Claim]) -> dict[int, Evidence]:
+def investigate(claims: list[Claim], model: str | None = None) -> dict[int, Evidence]:
     """One agent run for a group of claims. Returns evidence per claim index."""
     listing = "\n".join(f"[{i}] {c.text}" for i, c in enumerate(claims))
     messages = [{"role": "system", "content": SYSTEM},
                 {"role": "user", "content": f"Verify these claims:\n{listing}"}]
 
-    for _ in range(MAX_TURNS):
-        msg = chat(messages, tools=TOOLS)
+    budget = turn_budget(len(claims))
+    for _ in range(budget):
+        msg = chat(messages, tools=TOOLS, model=model)
         messages.append(msg)
         calls = msg.get("tool_calls") or []
         if not calls:
@@ -180,7 +240,7 @@ def investigate(claims: list[Claim]) -> dict[int, Evidence]:
             out = _run_tool(fn["name"], json.loads(fn["arguments"] or "{}"))
             messages.append({"role": "tool", "tool_call_id": call["id"], "content": out})
 
-    raise RuntimeError(f"agent exceeded {MAX_TURNS} turns")  # fail the group, not the run
+    raise RuntimeError(f"agent exceeded {budget} turns for {len(claims)} claims")
 
 
 def _parse(content: str, claims: list[Claim]) -> dict[int, Evidence]:
@@ -212,6 +272,12 @@ def _parse(content: str, claims: list[Claim]) -> dict[int, Evidence]:
             quantities.append(Quantity(value=q.value, unit=q.unit, scale=q.scale,
                                        period=p, basis=q.basis, raw=q.raw))
         quote = f.get("quote", "")
+        # A finding with no figures rests entirely on its quote — entity claims,
+        # headcounts stated in prose, segment names. Check the quote the same
+        # way a figure is checked, or a fabricated customer becomes evidence.
+        if quote and not f.get("figures") and not quote_grounded(quote, rows):
+            ungrounded.append(f"quote not in cited text: {quote[:60]}")
+            quote = ""
         if ungrounded:
             quote = (f"[dropped, not present in the cited text: "
                      f"{', '.join(ungrounded)}] {quote}").strip()

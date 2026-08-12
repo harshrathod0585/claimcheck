@@ -51,11 +51,26 @@ def _ingest(doc_id: str) -> tuple[Document, Node]:
 
 
 def list_documents() -> list[dict]:
+    """Documents, each labelled with its role.
+
+    The deck is the thing being checked; the filings are what it is checked
+    against. Without that distinction an agent will happily read the deck as
+    its own evidence and report that it agrees with itself.
+    """
     meta = _manifest()
-    return [
-        {"doc_id": d, "type": meta.get(d, {}).get("type", "document"), "period": meta.get(d, {}).get("period")}
-        for d in _paths()
-    ]
+    out = []
+    for d in _paths():
+        info = meta.get(d, {})
+        kind = info.get("type", "document")
+        is_deck = "deck" in kind.lower() or "ex-99" in kind.lower()
+        out.append({
+            "doc_id": d,
+            "type": kind,
+            "period": info.get("period"),
+            "role": "assertion (the deck being checked)" if is_deck
+                    else "evidence (a filing to check against)",
+        })
+    return out
 
 
 def get_structure(doc_id: str) -> Node:

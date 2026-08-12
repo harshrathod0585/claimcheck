@@ -1,0 +1,324 @@
+{
+  "mode": "agent decides",
+  "wall_seconds": 107.0,
+  "results": [
+    {
+      "model": "qwen/qwen3-235b-a22b-2507",
+      "hits": 12,
+      "total": 12,
+      "seconds": 106.3,
+      "rejected_evidence": 0,
+      "run_failed": false,
+      "rows": [
+        {
+          "i": 0,
+          "status": "SUPPORTED",
+          "expected": "SUPPORTED",
+          "ok": true,
+          "rejected": "",
+          "why": "10-K reports 2,684,275 thousands"
+        },
+        {
+          "i": 1,
+          "status": "SUPPORTED",
+          "expected": "SUPPORTED",
+          "ok": true,
+          "rejected": "",
+          "why": "10-K reports 54,284 thousands"
+        },
+        {
+          "i": 2,
+          "status": "SUPPORTED",
+          "expected": "SUPPORTED",
+          "ok": true,
+          "rejected": "",
+          "why": "10-K reports 870,603 thousands"
+        },
+        {
+          "i": 3,
+          "status": "SUPPORTED",
+          "expected": "SUPPORTED",
+          "ok": true,
+          "rejected": "",
+          "why": "10-K reports 775,103 thousands"
+        },
+        {
+          "i": 4,
+          "status": "SUPPORTED",
+          "expected": "SUPPORTED",
+          "ok": true,
+          "rejected": "",
+          "why": "10-K reports 515,531 thousands"
+        },
+        {
+          "i": 5,
+          "status": "SUPPORTED",
+          "expected": "SUPPORTED",
+          "ok": true,
+          "rejected": "",
+          "why": "10-K reports 2,168,744 thousands"
+        },
+        {
+          "i": 6,
+          "status": "CONTRADICTED",
+          "expected": "CONTRADICTED",
+          "ok": true,
+          "rejected": "",
+          "why": "seeded: actual growth is 26.1%"
+        },
+        {
+          "i": 7,
+          "status": "CONTRADICTED",
+          "expected": "CONTRADICTED",
+          "ok": true,
+          "rejected": "",
+          "why": "seeded: inflated ~3x"
+        },
+        {
+          "i": 8,
+          "status": "CONTRADICTED",
+          "expected": "CONTRADICTED",
+          "ok": true,
+          "rejected": "",
+          "why": "seeded: 10x the real 54,284"
+        },
+        {
+          "i": 9,
+          "status": "CONTRADICTED",
+          "expected": "CONTRADICTED",
+          "ok": true,
+          "rejected": "",
+          "why": "seeded: unit error, millions stated as billions"
+        },
+        {
+          "i": 10,
+          "status": "NO_EVIDENCE",
+          "expected": "BASIS_MISMATCH|NO_EVIDENCE",
+          "ok": true,
+          "rejected": "",
+          "why": "non-GAAP; GAAP figure is 54,284"
+        },
+        {
+          "i": 11,
+          "status": "NO_SOURCE",
+          "expected": "NO_SOURCE",
+          "ok": true,
+          "rejected": "",
+          "why": "corpus has no FY2026 filing"
+        }
+      ]
+    },
+    {
+      "model": "qwen/qwen3-235b-a22b-2507",
+      "hits": 12,
+      "total": 12,
+      "seconds": 100.0,
+      "rejected_evidence": 0,
+      "run_failed": false,
+      "rows": [
+        {
+          "i": 0,
+          "status": "SUPPORTED",
+          "expected": "SUPPORTED",
+          "ok": true,
+          "rejected": "",
+          "why": "10-K reports 2,684,275 thousands"
+        },
+        {
+          "i": 1,
+          "status": "SUPPORTED",
+          "expected": "SUPPORTED",
+          "ok": true,
+          "rejected": "",
+          "why": "10-K reports 54,284 thousands"
+        },
+        {
+          "i": 2,
+          "status": "SUPPORTED",
+          "expected": "SUPPORTED",
+          "ok": true,
+          "rejected": "",
+          "why": "10-K reports 870,603 thousands"
+        },
+        {
+          "i": 3,
+          "status": "SUPPORTED",
+          "expected": "SUPPORTED",
+          "ok": true,
+          "rejected": "",
+          "why": "10-K reports 775,103 thousands"
+        },
+        {
+          "i": 4,
+          "status": "SUPPORTED",
+          "expected": "SUPPORTED",
+          "ok": true,
+          "rejected": "",
+          "why": "10-K reports 515,531 thousands"
+        },
+        {
+          "i": 5,
+          "status": "SUPPORTED",
+          "expected": "SUPPORTED",
+          "ok": true,
+          "rejected": "",
+          "why": "10-K reports 2,168,744 thousands"
+        },
+        {
+          "i": 6,
+          "status": "CONTRADICTED",
+          "expected": "CONTRADICTED",
+          "ok": true,
+          "rejected": "",
+          "why": "seeded: actual growth is 26.1%"
+        },
+        {
+          "i": 7,
+          "status": "CONTRADICTED",
+          "expected": "CONTRADICTED",
+          "ok": true,
+          "rejected": "",
+          "why": "seeded: inflated ~3x"
+        },
+        {
+          "i": 8,
+          "status": "CONTRADICTED",
+          "expected": "CONTRADICTED",
+          "ok": true,
+          "rejected": "",
+          "why": "seeded: 10x the real 54,284"
+        },
+        {
+          "i": 9,
+          "status": "CONTRADICTED",
+          "expected": "CONTRADICTED",
+          "ok": true,
+          "rejected": "",
+          "why": "seeded: unit error, millions stated as billions"
+        },
+        {
+          "i": 10,
+          "status": "NO_EVIDENCE",
+          "expected": "BASIS_MISMATCH|NO_EVIDENCE",
+          "ok": true,
+          "rejected": "",
+          "why": "non-GAAP; GAAP figure is 54,284"
+        },
+        {
+          "i": 11,
+          "status": "NO_SOURCE",
+          "expected": "NO_SOURCE",
+          "ok": true,
+          "rejected": "",
+          "why": "corpus has no FY2026 filing"
+        }
+      ]
+    },
+    {
+      "model": "qwen/qwen3-235b-a22b-2507",
+      "hits": 12,
+      "total": 12,
+      "seconds": 107.0,
+      "rejected_evidence": 0,
+      "run_failed": false,
+      "rows": [
+        {
+          "i": 0,
+          "status": "SUPPORTED",
+          "expected": "SUPPORTED",
+          "ok": true,
+          "rejected": "",
+          "why": "10-K reports 2,684,275 thousands"
+        },
+        {
+          "i": 1,
+          "status": "SUPPORTED",
+          "expected": "SUPPORTED",
+          "ok": true,
+          "rejected": "",
+          "why": "10-K reports 54,284 thousands"
+        },
+        {
+          "i": 2,
+          "status": "SUPPORTED",
+          "expected": "SUPPORTED",
+          "ok": true,
+          "rejected": "",
+          "why": "10-K reports 870,603 thousands"
+        },
+        {
+          "i": 3,
+          "status": "SUPPORTED",
+          "expected": "SUPPORTED",
+          "ok": true,
+          "rejected": "",
+          "why": "10-K reports 775,103 thousands"
+        },
+        {
+          "i": 4,
+          "status": "SUPPORTED",
+          "expected": "SUPPORTED",
+          "ok": true,
+          "rejected": "",
+          "why": "10-K reports 515,531 thousands"
+        },
+        {
+          "i": 5,
+          "status": "SUPPORTED",
+          "expected": "SUPPORTED",
+          "ok": true,
+          "rejected": "",
+          "why": "10-K reports 2,168,744 thousands"
+        },
+        {
+          "i": 6,
+          "status": "CONTRADICTED",
+          "expected": "CONTRADICTED",
+          "ok": true,
+          "rejected": "",
+          "why": "seeded: actual growth is 26.1%"
+        },
+        {
+          "i": 7,
+          "status": "CONTRADICTED",
+          "expected": "CONTRADICTED",
+          "ok": true,
+          "rejected": "",
+          "why": "seeded: inflated ~3x"
+        },
+        {
+          "i": 8,
+          "status": "CONTRADICTED",
+          "expected": "CONTRADICTED",
+          "ok": true,
+          "rejected": "",
+          "why": "seeded: 10x the real 54,284"
+        },
+        {
+          "i": 9,
+          "status": "CONTRADICTED",
+          "expected": "CONTRADICTED",
+          "ok": true,
+          "rejected": "",
+          "why": "seeded: unit error, millions stated as billions"
+        },
+        {
+          "i": 10,
+          "status": "NO_EVIDENCE",
+          "expected": "BASIS_MISMATCH|NO_EVIDENCE",
+          "ok": true,
+          "rejected": "",
+          "why": "non-GAAP; GAAP figure is 54,284"
+        },
+        {
+          "i": 11,
+          "status": "NO_SOURCE",
+          "expected": "NO_SOURCE",
+          "ok": true,
+          "rejected": "",
+          "why": "corpus has no FY2026 filing"
+        }
+      ]
+    }
+  ]
+}

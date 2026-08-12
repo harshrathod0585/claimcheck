@@ -75,8 +75,15 @@ def extract(markdown: str, max_chars: int = 60_000, attempts: int = 3) -> list[C
                 f"extractor returned no claims after {attempts} attempts over "
                 f"{len(markdown)} chars of material")
 
-    claims = []
+    # The extractor returns the same sentence more than once, tagged with
+    # different operations, so a 22-claim deck can come back as 35. Verifying a
+    # claim twice costs twice and shows the analyst the same row twice.
+    claims, seen = [], set()
     for c in raw.get("claims", []):
+        key = " ".join(str(c.get("text", "")).lower().split())
+        if key in seen:
+            continue
+        seen.add(key)
         if c["operation"] == "entity":
             continue  # ponytail: entity claims need BM25; skipped until that lands
         q = parse_quantity(c["figure"])

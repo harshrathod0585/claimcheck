@@ -200,36 +200,78 @@ async def verify_live(body: dict) -> StreamingResponse:
     if not VERIFY_ENABLED:
         raise HTTPException(403, "live verification disabled; set VERIFY_ENABLED=1")
 
-    from .compare import compare
+    from .judge import judge
     from .models import Claim, Operation
     from .normalize import parse_period, parse_quantity
-    from .verify import investigate
 
     specs = (body.get("claims") or [])[:MAX_CLAIMS]
     if not specs:
         raise HTTPException(400, "no claims supplied")
 
+    # All claims go to ONE agent run: claims are the query, and claims sharing
+    # evidence share the fetch. One run per claim re-reads the same income
+    # statement for every claim and costs proportionally more.
+    claims = []
+    for spec in specs:
+        q = parse_quantity(spec.get("figure", ""))
+        if q is None:
+            continue
+        claims.append(Claim(text=spec.get("text", ""), value=q,
+                            operation=Operation(spec.get("operation", "absolute")),
+                            period=parse_period(spec.get("period", ""))))
+
     async def gen():
-        for spec in specs:
-            q = parse_quantity(spec.get("figure", ""))
-            if q is None:
-                yield _sse("verdict", {"text": spec.get("text", ""), "status": "RUN_FAILED",
-                                       "reason": "unparseable figure"})
-                continue
-            claim = Claim(text=spec.get("text", ""), value=q,
-                          operation=Operation(spec.get("operation", "absolute")),
-                          period=parse_period(spec.get("period", "")))
+        if not claims:
+            yield _sse("done", {"count": 0})
+            return
+
+        # The agent loop is blocking and takes minutes. Without forwarding its
+        # events the page goes dark and then dumps a wall of verdicts, which
+        # reads as hung. Events go onto a queue from the worker thread and out
+        # as they happen.
+        loop = asyncio.get_running_loop()
+        queue: asyncio.Queue = asyncio.Queue()
+
+        def on_event(kind: str, data: dict) -> None:
+            loop.call_soon_threadsafe(queue.put_nowait, (kind, data))
+
+        task = asyncio.create_task(
+            asyncio.to_thread(judge, claims, None, on_event))
+
+        while not task.done() or not queue.empty():
             try:
-                ev = (await asyncio.to_thread(investigate, [claim]))[0]
-                v = compare(claim, ev)
-                yield _sse("verdict", {"text": claim.text, "status": v.status.value,
-                                       "reason": v.reason, "claimed": v.claimed,
-                                       "actual": v.actual, "cite": ev.citation_url,
-                                       "figures": [x.raw for x in ev.quantities]})
-            except Exception as exc:  # one claim failing must not kill the stream
-                yield _sse("verdict", {"text": claim.text, "status": "RUN_FAILED",
+                kind, data = await asyncio.wait_for(queue.get(), timeout=0.5)
+                yield _sse(kind, data)
+            except asyncio.TimeoutError:
+                yield ": keepalive\n\n"   # keeps proxies from closing the stream
+
+        try:
+            results = task.result()
+        except Exception as exc:
+            for c in claims:
+                yield _sse("verdict", {"text": c.text, "status": "RUN_FAILED",
                                        "reason": f"{type(exc).__name__}: {exc}"[:200]})
-        yield _sse("done", {"count": len(specs)})
+            yield _sse("done", {"count": len(claims)})
+            return
+
+        for i, claim in enumerate(claims):
+            r = results.get(i, {})
+            yield _sse("verdict", {
+                "text": claim.text,
+                "status": r.get("status", "NO_EVIDENCE"),
+                "reason": r.get("reason", ""),
+                "found": r.get("found", ""),
+                "resolved": r.get("resolved", ""),
+                "basis": r.get("basis", ""),
+                "quote": r.get("quote", ""),
+                "cite": r.get("cite", ""),
+                "node_ids": r.get("node_ids", []),
+                # Surfaced so a rejected finding is visible in the UI rather
+                # than silently downgraded to "we found nothing".
+                "rejected": r.get("rejected", ""),
+                "warnings": r.get("warnings", []),
+            })
+        yield _sse("done", {"count": len(claims)})
 
     return StreamingResponse(gen(), media_type="text/event-stream",
                              headers={"Cache-Control": "no-cache",

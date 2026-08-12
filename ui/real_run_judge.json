@@ -1,0 +1,138 @@
+{
+  "model": "nvidia/nemotron-3-super-120b-a12b",
+  "mode": "agent decides",
+  "claims": [
+    {
+      "text": "Revenue was $2.68 billion in FY2024",
+      "expected": "SUPPORTED",
+      "status": "RUN_FAILED",
+      "reason": "RuntimeError: agent exceeded 8 turns",
+      "figures": [],
+      "cite": "",
+      "note": "10-K reports 2,684,275 thousands",
+      "seeded": false,
+      "ok": false
+    },
+    {
+      "text": "GAAP operating income was $54 million in FY2024",
+      "expected": "SUPPORTED",
+      "status": "RUN_FAILED",
+      "reason": "RuntimeError: agent exceeded 8 turns",
+      "figures": [],
+      "cite": "",
+      "note": "10-K reports 54,284 thousands",
+      "seeded": false,
+      "ok": false
+    },
+    {
+      "text": "Net cash from operating activities was $871 million in FY2024",
+      "expected": "SUPPORTED",
+      "status": "RUN_FAILED",
+      "reason": "RuntimeError: agent exceeded 8 turns",
+      "figures": [],
+      "cite": "",
+      "note": "10-K reports 870,603 thousands",
+      "seeded": false,
+      "ok": false
+    },
+    {
+      "text": "Free cash flow was $775 million in FY2024",
+      "expected": "SUPPORTED",
+      "status": "RUN_FAILED",
+      "reason": "RuntimeError: agent exceeded 8 turns",
+      "figures": [],
+      "cite": "",
+      "note": "10-K reports 775,103 thousands",
+      "seeded": false,
+      "ok": false
+    },
+    {
+      "text": "Cost of revenue was $516 million in FY2024",
+      "expected": "SUPPORTED",
+      "status": "RUN_FAILED",
+      "reason": "RuntimeError: agent exceeded 8 turns",
+      "figures": [],
+      "cite": "",
+      "note": "10-K reports 515,531 thousands",
+      "seeded": false,
+      "ok": false
+    },
+    {
+      "text": "Gross profit was $2.17 billion in FY2024",
+      "expected": "SUPPORTED",
+      "status": "RUN_FAILED",
+      "reason": "RuntimeError: agent exceeded 8 turns",
+      "figures": [],
+      "cite": "",
+      "note": "10-K reports 2,168,744 thousands",
+      "seeded": false,
+      "ok": false
+    },
+    {
+      "text": "Revenue grew 140% year over year in FY2024",
+      "expected": "CONTRADICTED",
+      "status": "RUN_FAILED",
+      "reason": "RuntimeError: agent exceeded 8 turns",
+      "figures": [],
+      "cite": "",
+      "note": "seeded: actual growth is 26.1%",
+      "seeded": true,
+      "ok": false
+    },
+    {
+      "text": "Revenue was $8.4 billion in FY2024",
+      "expected": "CONTRADICTED",
+      "status": "RUN_FAILED",
+      "reason": "RuntimeError: agent exceeded 8 turns",
+      "figures": [],
+      "cite": "",
+      "note": "seeded: inflated ~3x",
+      "seeded": true,
+      "ok": false
+    },
+    {
+      "text": "GAAP operating income was $540 million in FY2024",
+      "expected": "CONTRADICTED",
+      "status": "RUN_FAILED",
+      "reason": "RuntimeError: agent exceeded 8 turns",
+      "figures": [],
+      "cite": "",
+      "note": "seeded: 10x the real 54,284",
+      "seeded": true,
+      "ok": false
+    },
+    {
+      "text": "Free cash flow was $775 billion in FY2024",
+      "expected": "CONTRADICTED",
+      "status": "RUN_FAILED",
+      "reason": "RuntimeError: agent exceeded 8 turns",
+      "figures": [],
+      "cite": "",
+      "note": "seeded: unit error, millions stated as billions",
+      "seeded": true,
+      "ok": false
+    },
+    {
+      "text": "Non-GAAP operating income was $674 million in FY2024",
+      "expected": "BASIS_MISMATCH|NO_EVIDENCE",
+      "status": "RUN_FAILED",
+      "reason": "RuntimeError: agent exceeded 8 turns",
+      "figures": [],
+      "cite": "",
+      "note": "non-GAAP; GAAP figure is 54,284",
+      "seeded": false,
+      "ok": false
+    },
+    {
+      "text": "Revenue was $3.5 billion in FY2026",
+      "expected": "NO_SOURCE",
+      "status": "RUN_FAILED",
+      "reason": "RuntimeError: agent exceeded 8 turns",
+      "figures": [],
+      "cite": "",
+      "note": "corpus has no FY2026 filing",
+      "seeded": false,
+      "ok": false
+    }
+  ]
+}

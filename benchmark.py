@@ -11,11 +11,13 @@ from __future__ import annotations
 import json
 import os
 import pathlib
+import sys
 import time
 
 from src.compare import compare
 from src.models import Claim, Operation
 from src.normalize import parse_period, parse_quantity
+from src.judge import judge
 from src.verify import investigate
 
 OUT = pathlib.Path(__file__).parent / "ui" / "real_run.json"
@@ -58,38 +60,59 @@ CASES = [
 
 def main() -> None:
     model = os.environ.get("LLM_MODEL", "?")
-    print(f"model: {model}\ncases: {len(CASES)}\n")
+    # --judge: the agent states the verdict. Default: the agent returns evidence
+    # and compare.py decides. Same cases either way, so the two are comparable.
+    use_judge = "--judge" in sys.argv
+    mode = "agent decides" if use_judge else "code decides"
+    print(f"model: {model}\nmode : {mode}\ncases: {len(CASES)}\n", flush=True)
     rows, hits, started = [], 0, time.time()
 
-    for i, (text, fig, op, per, expected, why) in enumerate(CASES, 1):
-        claim = Claim(text=text, value=parse_quantity(fig), operation=op,
-                      period=parse_period(per))
-        t0 = time.time()
-        try:
-            ev = investigate([claim])[0]
-            v = compare(claim, ev)
-            got, reason = v.status.value, (v.reason or "")
-            figures = [q.raw for q in ev.quantities]
-            cite = ev.citation_url
-        except Exception as exc:
-            got, reason, figures, cite = "RUN_FAILED", f"{type(exc).__name__}: {exc}"[:120], [], ""
+    # All claims go to ONE agent run. That is the design: claims are the query,
+    # and claims sharing evidence share the fetch. One run per claim re-reads
+    # the same income statement twelve times and costs twelve times as much.
+    claims = [Claim(text=text, value=parse_quantity(fig), operation=op,
+                    period=parse_period(per))
+              for text, fig, op, per, _, _ in CASES]
 
-        ok = got in expected.split("|")
+    t0 = time.time()
+    try:
+        if use_judge:
+            results = judge(claims)
+            got = {i: (r["status"], r.get("reason", ""),
+                       [r["found"]] if r.get("found") else [], r.get("cite", ""))
+                   for i, r in results.items()}
+        else:
+            evidence = investigate(claims)
+            got = {}
+            for i, c in enumerate(claims):
+                v = compare(c, evidence[i])
+                got[i] = (v.status.value, v.reason or "",
+                          [q.raw for q in evidence[i].quantities],
+                          evidence[i].citation_url)
+    except Exception as exc:
+        detail = f"{type(exc).__name__}: {exc}"[:120]
+        got = {i: ("RUN_FAILED", detail, [], "") for i in range(len(CASES))}
+    elapsed = time.time() - t0
+
+    for i, (text, _fig, _op, _per, expected, why) in enumerate(CASES):
+        status, reason, figures, cite = got.get(i, ("RUN_FAILED", "no result", [], ""))
+        ok = status in expected.split("|")
         hits += ok
-        secs = time.time() - t0
-        print(f"{'ok ' if ok else 'MISS'} [{i:2}/{len(CASES)}] {got:<15} "
-              f"expected {expected:<26} {secs:5.1f}s  {text[:44]}")
+        print(f"{'ok ' if ok else 'MISS'} [{i+1:2}/{len(CASES)}] {status:<15} "
+              f"expected {expected:<26} {text[:46]}", flush=True)
         if not ok:
-            print(f"     reason: {reason[:96]}")
-            print(f"     figures: {figures}  ({why})")
+            print(f"     reason : {reason[:96]}")
+            print(f"     figures: {figures}   ({why})", flush=True)
 
-        rows.append({"text": text, "expected": expected, "status": got, "reason": reason,
-                     "figures": figures, "cite": cite, "seconds": round(secs, 1),
+        rows.append({"text": text, "expected": expected, "status": status,
+                     "reason": reason, "figures": figures, "cite": cite,
                      "note": why, "seeded": "seeded" in why, "ok": ok})
 
+    print(f"\none agent run for {len(CASES)} claims: {elapsed:.0f}s "
+          f"({elapsed/len(CASES):.0f}s per claim)", flush=True)
+
     total = time.time() - started
-    print(f"\n{hits} of {len(CASES)} as expected · {total:.0f}s total "
-          f"· {total/len(CASES):.0f}s per claim · model {model}")
+    print(f"{hits} of {len(CASES)} as expected · {total:.0f}s total · model {model}")
     misses = [r for r in rows if not r["ok"]]
     if misses:
         print("\nmisses:")
@@ -97,8 +120,9 @@ def main() -> None:
             print(f"  {m['status']:<15} {m['text'][:52]}")
             print(f"      {m['reason'][:96]}")
 
-    OUT.write_text(json.dumps({"model": model, "claims": rows}, indent=2))
-    print(f"\nwrote {OUT}")
+    out = OUT.with_name("real_run_judge.json") if use_judge else OUT
+    out.write_text(json.dumps({"model": model, "mode": mode, "claims": rows}, indent=2))
+    print(f"\nwrote {out}")
 
 
 if __name__ == "__main__":
